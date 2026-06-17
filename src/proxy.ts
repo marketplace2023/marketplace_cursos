@@ -9,7 +9,7 @@ const SECRET = new TextEncoder().encode(
 const PROTECTED = /^\/dashboard(\/.*)?$/
 const AUTH_PAGES = /^\/(login|registro|recuperar)(\/.*)?$/
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   /* get token */
