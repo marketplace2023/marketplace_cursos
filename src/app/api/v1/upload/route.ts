@@ -26,17 +26,20 @@ async function uploadToCloudinary(buffer: ArrayBuffer, mime: string, isVideo: bo
   })
 
   const folder = isVideo ? 'edumarket/videos' : 'edumarket/images'
-  const resourceType = isVideo ? 'video' : 'image'
+  const resourceType = (isVideo ? 'video' : 'image') as 'video' | 'image'
+  const buf = Buffer.from(buffer)
 
-  const base64 = Buffer.from(buffer).toString('base64')
-  const dataUri = `data:${mime};base64,${base64}`
-
-  const result = await cloudinary.uploader.upload(dataUri, {
-    folder,
-    resource_type: resourceType,
+  return new Promise<string>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: resourceType },
+      (error, result) => {
+        if (error) return reject(error)
+        if (!result?.secure_url) return reject(new Error('Cloudinary no devolvió URL'))
+        resolve(result.secure_url)
+      }
+    )
+    stream.end(buf)
   })
-
-  return result.secure_url
 }
 
 async function uploadToLocalFs(buffer: ArrayBuffer, mime: string, isImage: boolean): Promise<string> {

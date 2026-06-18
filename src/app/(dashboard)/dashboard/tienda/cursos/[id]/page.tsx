@@ -74,7 +74,12 @@ export default function EditarCursoPage() {
       fd.append('file', file)
       const res = await fetch('/api/v1/upload', { method: 'POST', body: fd })
       const data = await res.json()
-      if (res.ok && data.data?.url) set('cover_url', data.data.url)
+      if (res.ok && data.data?.url) {
+        set('cover_url', data.data.url)
+      } else {
+        console.error('[upload error]', data)
+        alert(`Error al subir imagen: ${data?.error?.message ?? JSON.stringify(data)}`)
+      }
     } finally {
       setUploadingCover(false)
       if (coverInputRef.current) coverInputRef.current.value = ''
