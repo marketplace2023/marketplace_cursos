@@ -19,6 +19,13 @@ interface TopbarProps {
   notifCount?: number
 }
 
+const ROLE_DASH: Record<string, string> = {
+  buyer: 'comprador', store_owner: 'tienda', instructor: 'instructor',
+  admin: 'admin', superadmin: 'admin', support: 'soporte',
+  marketing: 'marketing', finance: 'finanzas', compliance: 'compliance',
+  b2b_user: 'corporativo',
+}
+
 export function DashboardTopbar({ user, title, navItems, notifCount = 0 }: TopbarProps) {
   const [open, setOpen] = useState(false)
 
@@ -47,7 +54,7 @@ export function DashboardTopbar({ user, title, navItems, notifCount = 0 }: Topba
       <div className="ml-auto flex items-center gap-2">
         {/* Notifications */}
         <Button variant="ghost" size="icon" asChild className="relative">
-          <Link href="notificaciones">
+          <Link href={`/dashboard/${ROLE_DASH[user.role] ?? 'comprador'}/notificaciones`}>
             <FaBell className="h-5 w-5" />
             {notifCount > 0 && (
               <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs bg-destructive border-0">
