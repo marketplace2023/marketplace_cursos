@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
+import { v2 as cloudinary } from 'cloudinary'
 import { getSession } from '@/lib/auth/session'
 import { unauthorized, badRequest, serverError, created } from '@/lib/api/response'
 
@@ -17,39 +18,24 @@ const EXT: Record<string, string> = {
 }
 
 async function uploadToCloudinary(buffer: ArrayBuffer, mime: string, isVideo: boolean): Promise<string> {
-  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env
-  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-    throw new Error('CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET no están configurados')
-  }
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  })
 
-  const resourceType = isVideo ? 'video' : 'image'
   const folder = isVideo ? 'edumarket/videos' : 'edumarket/images'
+  const resourceType = isVideo ? 'video' : 'image'
 
-  const timestamp = Math.floor(Date.now() / 1000)
+  const base64 = Buffer.from(buffer).toString('base64')
+  const dataUri = `data:${mime};base64,${base64}`
 
-  // Signature must exclude: file, api_key, cloud_name, resource_type
-  const signStr = `folder=${folder}&timestamp=${timestamp}${CLOUDINARY_API_SECRET}`
-  const encoder = new TextEncoder()
-  const hashBuffer = await crypto.subtle.digest('SHA-1', encoder.encode(signStr))
-  const signature = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder,
+    resource_type: resourceType,
+  })
 
-  const formData = new FormData()
-  const blob = new Blob([buffer], { type: mime })
-  formData.append('file', blob)
-  formData.append('folder', folder)
-  formData.append('timestamp', String(timestamp))
-  formData.append('api_key', CLOUDINARY_API_KEY)
-  formData.append('signature', signature)
-
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
-    { method: 'POST', body: formData }
-  )
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Cloudinary error: ${err}`)
-  }
-  const result = await res.json() as { secure_url: string }
   return result.secure_url
 }
 
@@ -70,9 +56,9 @@ export async function POST(req: Request) {
 
     const formData = await req.formData()
     const file = formData.get('file') as File | null
-    if (!file || !file.name) return badRequest('No se recibió ningún archivo')
+    if (!file) return badRequest('No se recibió ningún archivo')
 
-    const mime = file.type
+    const mime = file.type || 'application/octet-stream'
     const isImage = IMAGE_TYPES.includes(mime)
     const isVideo = VIDEO_TYPES.includes(mime)
     if (!isImage && !isVideo) return badRequest(`Tipo de archivo no permitido: ${mime}`)
@@ -93,13 +79,12 @@ export async function POST(req: Request) {
 
     let url: string
     if (isProduction && !hasCloudinary) {
-      return badRequest('Subida de archivos no configurada. Configura CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET.')
+      return badRequest('Variables de entorno de Cloudinary no configuradas en Netlify.')
     }
 
     if (isProduction && hasCloudinary) {
       url = await uploadToCloudinary(bytes, mime, isVideo)
     } else {
-      // En desarrollo siempre usa el filesystem local (más rápido y sin dependencias externas)
       url = await uploadToLocalFs(bytes, mime, isImage)
     }
 
