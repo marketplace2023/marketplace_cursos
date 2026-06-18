@@ -89,9 +89,12 @@ export async function POST(req: Request) {
     }
 
     return created({ url, filename: file.name, size: file.size, type: mime })
-  } catch (e) {
-    console.error('[upload]', e)
+  } catch (e: unknown) {
+    console.error('[upload]', JSON.stringify(e))
     if (e instanceof Error) return badRequest(e.message)
+    // Cloudinary SDK throws plain objects: { error: { message: '...' } }
+    const cldMsg = (e as any)?.error?.message ?? (e as any)?.message
+    if (typeof cldMsg === 'string') return badRequest(cldMsg)
     return serverError()
   }
 }
