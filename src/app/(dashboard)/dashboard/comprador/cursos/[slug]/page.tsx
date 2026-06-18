@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
@@ -357,6 +357,10 @@ function QuizPlayer({ quizId, onClose }: { quizId: number; onClose: () => void }
 
 /* ─── Course Player Page ─── */
 export default function CursoPlayerPage() {
+  return <Suspense><CursoPlayerInner /></Suspense>
+}
+
+function CursoPlayerInner() {
   const { slug } = useParams<{ slug: string }>()
   const searchParams = useSearchParams()
   const [course, setCourse] = useState<CourseData | null>(null)

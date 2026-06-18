@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { FaArrowLeft, FaPlus, FaTrash, FaGripVertical, FaVideo, FaFileAlt, FaChevronDown } from 'react-icons/fa'
+import { FaArrowLeft, FaPlus, FaTrash, FaGripVertical, FaVideo, FaFileAlt, FaChevronDown, FaUpload, FaSpinner } from 'react-icons/fa'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 interface Lesson { id: number; name: string; slide_type: string; duration: number; sort_order: number }
-interface Module { id: number; name: string; sort_order: number; slides: Lesson[] }
+interface Module { id: number; name: string; sort_order: number; lessons: Lesson[] }
 
 export default function ContenidoCursoPage() {
   const { id } = useParams<{ id: string }>()
@@ -33,11 +33,13 @@ export default function ContenidoCursoPage() {
   /* New lesson dialog */
   const [lesDialog, setLesDialog] = useState<number | null>(null)
   const [lesForm, setLesForm] = useState({ name: '', slide_type: 'video', duration: '0', content_url: '' })
+  const [uploadingMedia, setUploadingMedia] = useState(false)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetch(`/api/v1/courses/${id}`).then(r => r.json()).then(d => {
-      setCourseName(d.course?.name ?? '')
-      setModules(d.course?.modules ?? [])
+      setCourseName(d.data?.name ?? '')
+      setModules(d.data?.modules ?? [])
       setLoading(false)
     })
   }, [id])
@@ -51,7 +53,7 @@ export default function ContenidoCursoPage() {
     })
     if (res.ok) {
       const data = await res.json()
-      setModules(prev => [...prev, { ...data.data, slides: [] }])
+      setModules(prev => [...prev, { ...data.data, lessons: [] }])
       setModName('')
       setModDialog(false)
     }
@@ -60,6 +62,24 @@ export default function ContenidoCursoPage() {
   async function deleteModule(moduleId: number) {
     await fetch(`/api/v1/admin/courses/${id}/modules/${moduleId}`, { method: 'DELETE' })
     setModules(prev => prev.filter(m => m.id !== moduleId))
+  }
+
+  async function handleMediaUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingMedia(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/v1/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (res.ok && data.data?.url) {
+        setLesForm(p => ({ ...p, content_url: data.data.url }))
+      }
+    } finally {
+      setUploadingMedia(false)
+      if (mediaInputRef.current) mediaInputRef.current.value = ''
+    }
   }
 
   async function addLesson(moduleId: number) {
@@ -71,12 +91,12 @@ export default function ContenidoCursoPage() {
         slide_type: lesForm.slide_type,
         duration: Number(lesForm.duration),
         content_url: lesForm.content_url.trim() || null,
-        sort_order: modules.find(m => m.id === moduleId)?.slides.length ?? 0,
+        sort_order: modules.find(m => m.id === moduleId)?.lessons.length ?? 0,
       }),
     })
     if (res.ok) {
       const data = await res.json()
-      setModules(prev => prev.map(m => m.id === moduleId ? { ...m, slides: [...m.slides, data.data] } : m))
+      setModules(prev => prev.map(m => m.id === moduleId ? { ...m, lessons: [...m.lessons, data.data] } : m))
       setLesForm({ name: '', slide_type: 'video', duration: '0', content_url: '' })
       setLesDialog(null)
     }
@@ -84,7 +104,7 @@ export default function ContenidoCursoPage() {
 
   async function deleteLesson(moduleId: number, lessonId: number) {
     await fetch(`/api/v1/admin/courses/${id}/lessons/${lessonId}`, { method: 'DELETE' })
-    setModules(prev => prev.map(m => m.id === moduleId ? { ...m, slides: m.slides.filter(s => s.id !== lessonId) } : m))
+    setModules(prev => prev.map(m => m.id === moduleId ? { ...m, lessons: m.lessons.filter(s => s.id !== lessonId) } : m))
   }
 
   const ICONS: Record<string, React.ReactNode> = {
@@ -98,7 +118,7 @@ export default function ContenidoCursoPage() {
     </div>
   )
 
-  const totalLessons = modules.reduce((a, m) => a + m.slides.length, 0)
+  const totalLessons = modules.reduce((a, m) => a + m.lessons.length, 0)
 
   return (
     <div className="flex flex-col gap-6">
@@ -147,12 +167,12 @@ export default function ContenidoCursoPage() {
                   <div className="flex items-center gap-3 text-left w-full">
                     <FaGripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                     <span className="font-semibold text-sm flex-1">{mod.name}</span>
-                    <Badge variant="secondary" className="text-xs mr-2">{mod.slides.length} lecciones</Badge>
+                    <Badge variant="secondary" className="text-xs mr-2">{mod.lessons.length} lecciones</Badge>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="px-4 pb-4 flex flex-col gap-2">
-                    {mod.slides.map(lesson => (
+                    {mod.lessons.map(lesson => (
                       <div key={lesson.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50">
                         <FaGripVertical className="h-3 w-3 text-muted-foreground/50 shrink-0" />
                         <span className="text-muted-foreground shrink-0">{ICONS[lesson.slide_type] ?? <FaVideo className="h-3 w-3" />}</span>
@@ -199,8 +219,35 @@ export default function ContenidoCursoPage() {
                               </div>
                             </div>
                             <div className="flex flex-col gap-1.5">
-                              <Label>URL del contenido</Label>
-                              <Input value={lesForm.content_url} onChange={e => setLesForm(p => ({ ...p, content_url: e.target.value }))} placeholder="https://…" />
+                              <Label>Contenido</Label>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={lesForm.content_url}
+                                  onChange={e => setLesForm(p => ({ ...p, content_url: e.target.value }))}
+                                  placeholder="URL o sube un archivo"
+                                  className="flex-1"
+                                />
+                                <input
+                                  ref={mediaInputRef}
+                                  type="file"
+                                  className="hidden"
+                                  accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png"
+                                  onChange={handleMediaUpload}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => mediaInputRef.current?.click()}
+                                  disabled={uploadingMedia}
+                                  className="shrink-0 px-3"
+                                >
+                                  {uploadingMedia ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaUpload className="h-3.5 w-3.5" />}
+                                </Button>
+                              </div>
+                              {lesForm.content_url && (
+                                <p className="text-xs text-brand-green truncate">{lesForm.content_url}</p>
+                              )}
                             </div>
                             <Button onClick={() => addLesson(mod.id)} className="bg-brand-green hover:bg-brand-green-dark text-white">Crear lección</Button>
                           </div>

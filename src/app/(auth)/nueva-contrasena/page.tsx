@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   FaGraduationCap, FaLock, FaEye, FaEyeSlash,
@@ -19,6 +19,10 @@ const PASSWORD_RULES = [
 ]
 
 export default function NuevaContrasenaPage() {
+  return <Suspense><NuevaContrasenaInner /></Suspense>
+}
+
+function NuevaContrasenaInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token') ?? ''

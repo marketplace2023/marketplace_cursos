@@ -1,7 +1,59 @@
 import { eq, and, ilike, desc, asc, sql, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { marketplace_store, res_users } from '@/lib/db/schema'
-import { ok, serverError, pageMeta } from '@/lib/api/response'
+import { ok, created, unauthorized, forbidden, conflict, badRequest, serverError, pageMeta } from '@/lib/api/response'
+import { getSession } from '@/lib/auth/session'
+
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    + '-' + Date.now().toString(36)
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await getSession()
+    if (!session) return unauthorized()
+    if (!['store_owner', 'admin', 'superadmin'].includes(session.role)) return forbidden()
+
+    const userId = Number(session.sub)
+    const body = await req.json()
+    if (!body.name?.trim()) return badRequest('El nombre de la tienda es requerido')
+
+    /* Check if user already has a store */
+    const [existing] = await db.select({ id: marketplace_store.id })
+      .from(marketplace_store).where(eq(marketplace_store.owner_id, userId)).limit(1)
+    if (existing) return conflict('Ya tienes una tienda registrada')
+
+    const slug = toSlug(body.name.trim())
+    const [store] = await db.insert(marketplace_store).values({
+      owner_id: userId,
+      name: body.name.trim(),
+      slug,
+      description: body.description?.trim() || null,
+      store_type: body.store_type ?? 'academy',
+      email: body.email || null,
+      phone: body.phone || null,
+      website: body.website || null,
+      country: body.country || 'CO',
+      city: body.city || null,
+      logo_url: body.logo_url || null,
+      cover_url: body.cover_url || null,
+      plan: 'free',
+      state: 'active',
+    }).returning()
+
+    return created(store)
+  } catch (e) {
+    console.error('[stores POST]', e)
+    return serverError()
+  }
+}
 
 export async function GET(request: Request) {
   try {

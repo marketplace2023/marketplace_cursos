@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -124,6 +124,10 @@ function FilterPanel({
 
 /* ─── Main page ─── */
 export default function CategoriaPage() {
+  return <Suspense><CategoriaInner /></Suspense>
+}
+
+function CategoriaInner() {
   const { slug } = useParams<{ slug: string }>()
   const searchParams = useSearchParams()
 

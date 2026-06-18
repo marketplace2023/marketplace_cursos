@@ -5,7 +5,11 @@ import { marketplace_cart, marketplace_cart_item, product_template } from '@/lib
 import { getSession } from '@/lib/auth/session'
 import { unauthorized, badRequest, serverError, ok } from '@/lib/api/response'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2026-05-27.dahlia' })
+let _stripe: Stripe | null = null
+function getStripe() {
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2026-05-27.dahlia' })
+  return _stripe
+}
 
 export async function POST() {
   try {
@@ -49,7 +53,7 @@ export async function POST() {
     /* Stripe expects amount in cents */
     const amountCents = Math.round(subtotal * 100)
 
-    const intent = await stripe.paymentIntents.create({
+    const intent = await getStripe().paymentIntents.create({
       amount: amountCents,
       currency,
       automatic_payment_methods: { enabled: true },

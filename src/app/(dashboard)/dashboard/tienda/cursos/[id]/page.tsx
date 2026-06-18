@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FaArrowLeft, FaSave, FaTrash, FaEye } from 'react-icons/fa'
+import Image from 'next/image'
+import { FaArrowLeft, FaSave, FaTrash, FaEye, FaImage, FaSpinner, FaTimes } from 'react-icons/fa'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,32 +24,36 @@ import {
 export default function EditarCursoPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const coverInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
   const [course, setCourse] = useState<any>(null)
   const [form, setForm] = useState({
-    name: '', subtitle: '', description: '', level: 'beginner',
-    modality: 'online', format: 'recorded', language: 'es',
+    name: '', subtitle: '', description: '', level: 'all_levels',
+    modality: 'online_async', format: 'video', language: 'es',
     list_price: '0', sale_price: '', is_free: false,
     has_certificate: false, currency: 'USD',
     objectives: '', requirements: '', target_audience: '', state: 'draft',
+    cover_url: '',
   })
 
   useEffect(() => {
-    fetch(`/api/v1/courses/${id}`).then(r => r.json()).then(d => {
-      if (d.course) {
-        const c = d.course
+    fetch(`/api/v1/admin/courses/${id}`).then(r => r.json()).then(d => {
+      if (d.data) {
+        const c = d.data
         setCourse(c)
         setForm({
           name: c.name ?? '', subtitle: c.subtitle ?? '',
           description: c.description ?? '', level: c.level ?? 'beginner',
-          modality: c.modality ?? 'online', format: c.format ?? 'recorded',
+          modality: c.modality ?? 'online_async', format: c.format ?? 'video',
           language: c.language ?? 'es', list_price: String(c.list_price ?? 0),
           sale_price: String(c.sale_price ?? ''), is_free: c.is_free ?? false,
           has_certificate: c.has_certificate ?? false, currency: c.currency ?? 'USD',
-          objectives: c.objectives ?? '', requirements: c.requirements ?? '',
+          objectives: c.learning_objectives ?? '', requirements: c.requirements ?? '',
           target_audience: c.target_audience ?? '', state: c.state ?? 'draft',
+          cover_url: c.cover_url ?? '',
         })
       }
       setLoading(false)
@@ -60,6 +65,22 @@ export default function EditarCursoPage() {
     setSaved(false)
   }
 
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingCover(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/v1/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (res.ok && data.data?.url) set('cover_url', data.data.url)
+    } finally {
+      setUploadingCover(false)
+      if (coverInputRef.current) coverInputRef.current.value = ''
+    }
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -67,7 +88,7 @@ export default function EditarCursoPage() {
       const res = await fetch(`/api/v1/admin/courses/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, list_price: Number(form.list_price), sale_price: form.sale_price ? Number(form.sale_price) : null }),
+        body: JSON.stringify({ ...form, list_price: Number(form.list_price), sale_price: form.sale_price ? Number(form.sale_price) : null, learning_objectives: form.objectives }),
       })
       if (res.ok) setSaved(true)
     } finally {
@@ -123,6 +144,31 @@ export default function EditarCursoPage() {
           </Button>
         </div>
       </div>
+
+      {/* Cover upload */}
+      <Card>
+        <CardHeader><CardTitle>Imagen de portada</CardTitle></CardHeader>
+        <CardContent>
+          <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCoverUpload} />
+          {form.cover_url ? (
+            <div className="relative w-full h-44 rounded-xl overflow-hidden border border-border/50 group">
+              <Image src={form.cover_url} alt="Portada" fill className="object-cover" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <Button type="button" size="sm" variant="secondary" onClick={() => coverInputRef.current?.click()}>Cambiar</Button>
+                <Button type="button" size="sm" variant="destructive" onClick={() => set('cover_url', '')}><FaTimes className="h-3 w-3" /></Button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
+              className="w-full h-44 rounded-xl border-2 border-dashed border-border/60 hover:border-brand-green/60 bg-muted/30 hover:bg-brand-green/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-brand-green">
+              {uploadingCover
+                ? <><FaSpinner className="h-7 w-7 animate-spin" /><span className="text-sm">Subiendo…</span></>
+                : <><FaImage className="h-7 w-7" /><span className="text-sm font-medium">Subir imagen de portada</span><span className="text-xs">JPG, PNG o WebP · Máx 10 MB</span></>
+              }
+            </button>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Información básica</CardTitle></CardHeader>

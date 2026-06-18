@@ -6,7 +6,11 @@ import {
   sale_order, sale_order_line, marketplace_enrollment, account_payment,
 } from '@/lib/db/schema'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2026-05-27.dahlia' })
+let _stripe: Stripe | null = null
+function getStripe() {
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2026-05-27.dahlia' })
+  return _stripe
+}
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? ''
 
 export async function POST(req: Request) {
@@ -21,7 +25,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, WEBHOOK_SECRET)
+    event = getStripe().webhooks.constructEvent(body, sig, WEBHOOK_SECRET)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('[stripe-webhook] signature error:', msg)

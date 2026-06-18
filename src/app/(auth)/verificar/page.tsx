@@ -1,13 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { FaGraduationCap, FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 export default function VerificarPage() {
+  return <Suspense><VerificarInner /></Suspense>
+}
+
+function VerificarInner() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')

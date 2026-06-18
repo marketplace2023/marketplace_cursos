@@ -1,6 +1,10 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let _resend: Resend | null = null
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 
 const FROM = process.env.EMAIL_FROM ?? 'EduMarket <noreply@edumarket.com>'
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -8,7 +12,7 @@ const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? 'EduMarket'
 
 export async function sendPasswordResetEmail(to: string, name: string, token: string) {
   const resetUrl = `${BASE}/nueva-contrasena?token=${token}`
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `Restablece tu contraseña — ${APP_NAME}`,
@@ -31,7 +35,7 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
 
 export async function sendVerifyEmail(to: string, name: string, token: string) {
   const verifyUrl = `${BASE}/verificar?token=${token}`
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `Confirma tu correo — ${APP_NAME}`,
@@ -52,7 +56,7 @@ export async function sendVerifyEmail(to: string, name: string, token: string) {
 }
 
 export async function sendWelcomeEmail(to: string, name: string) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `¡Bienvenido/a a ${APP_NAME}!`,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { FaSearch, FaFilter, FaTimes, FaStar, FaGraduationCap } from 'react-icons/fa'
@@ -86,6 +86,10 @@ function FilterPanel({
 }
 
 export default function BuscarPage() {
+  return <Suspense><BuscarInner /></Suspense>
+}
+
+function BuscarInner() {
   const searchParams = useSearchParams()
   const initialQ = searchParams.get('q') ?? ''
 

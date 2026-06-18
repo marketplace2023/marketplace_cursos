@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FaArrowLeft } from 'react-icons/fa'
+import { FaArrowLeft, FaImage, FaSpinner, FaTimes } from 'react-icons/fa'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -16,22 +18,51 @@ import { Switch } from '@/components/ui/switch'
 
 export default function NuevoCursoPage() {
   const router = useRouter()
+  const coverInputRef = useRef<HTMLInputElement>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     name: '', subtitle: '', description: '',
-    level: 'beginner', modality: 'online', format: 'recorded',
+    level: 'all_levels', modality: 'online_async', format: 'video',
     language: 'es', list_price: '0', is_free: false,
     has_certificate: false, currency: 'USD',
     objectives: '', requirements: '', target_audience: '',
+    cover_url: '',
   })
 
   function set(field: string, value: string | boolean) {
     setForm(p => ({ ...p, [field]: value }))
   }
 
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingCover(true)
+    setError('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/v1/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (res.ok && data.data?.url) {
+        set('cover_url', data.data.url)
+      } else {
+        setError(data.error?.message ?? 'Error al subir la imagen')
+      }
+    } catch {
+      setError('Error de conexión al subir imagen')
+    } finally {
+      setUploadingCover(false)
+      if (coverInputRef.current) coverInputRef.current.value = ''
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.name.trim()) { setError('El título es requerido'); return }
     setSaving(true)
+    setError('')
     try {
       const res = await fetch('/api/v1/admin/courses', {
         method: 'POST',
@@ -41,9 +72,11 @@ export default function NuevoCursoPage() {
           list_price: form.is_free ? 0 : Number(form.list_price),
         }),
       })
+      const data = await res.json()
       if (res.ok) {
-        const data = await res.json()
-        router.push(`/dashboard/tienda/cursos/${data.data?.id ?? data.data}`)
+        router.push(`/dashboard/tienda/cursos/${data.data?.id}`)
+      } else {
+        setError(data.error?.message ?? 'Error al crear el curso')
       }
     } finally {
       setSaving(false)
@@ -61,6 +94,47 @@ export default function NuevoCursoPage() {
           <p className="text-muted-foreground mt-0.5">Completa la información básica de tu curso</p>
         </div>
       </div>
+
+      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+
+      {/* Cover image */}
+      <Card>
+        <CardHeader><CardTitle>Imagen de portada</CardTitle></CardHeader>
+        <CardContent>
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleCoverUpload}
+          />
+          {form.cover_url ? (
+            <div className="relative w-full h-48 rounded-xl overflow-hidden border border-border/50 group">
+              <Image src={form.cover_url} alt="Portada del curso" fill className="object-cover" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <Button type="button" size="sm" variant="secondary" onClick={() => coverInputRef.current?.click()}>
+                  Cambiar
+                </Button>
+                <Button type="button" size="sm" variant="destructive" onClick={() => set('cover_url', '')}>
+                  <FaTimes className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploadingCover}
+              className="w-full h-48 rounded-xl border-2 border-dashed border-border/60 hover:border-brand-green/60 bg-muted/30 hover:bg-brand-green/5 transition-all flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-brand-green"
+            >
+              {uploadingCover
+                ? <><FaSpinner className="h-8 w-8 animate-spin" /><span className="text-sm">Subiendo…</span></>
+                : <><FaImage className="h-8 w-8" /><span className="text-sm font-medium">Haz clic para subir una imagen</span><span className="text-xs">JPG, PNG o WebP · Máx 10 MB</span></>
+              }
+            </button>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Información básica</CardTitle></CardHeader>
@@ -86,10 +160,10 @@ export default function NuevoCursoPage() {
               <Select value={form.level} onValueChange={v => set('level', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all_levels">Todos los niveles</SelectItem>
                   <SelectItem value="beginner">Principiante</SelectItem>
                   <SelectItem value="intermediate">Intermedio</SelectItem>
                   <SelectItem value="advanced">Avanzado</SelectItem>
-                  <SelectItem value="all">Todos los niveles</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -98,9 +172,11 @@ export default function NuevoCursoPage() {
               <Select value={form.modality} onValueChange={v => set('modality', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="online_async">Online (asíncrono)</SelectItem>
+                  <SelectItem value="online_sync">Online (en vivo)</SelectItem>
                   <SelectItem value="presential">Presencial</SelectItem>
                   <SelectItem value="hybrid">Híbrido</SelectItem>
+                  <SelectItem value="recorded">Grabado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -109,9 +185,11 @@ export default function NuevoCursoPage() {
               <Select value={form.format} onValueChange={v => set('format', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recorded">Grabado</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="text">Texto</SelectItem>
+                  <SelectItem value="audio">Audio</SelectItem>
                   <SelectItem value="live">En vivo</SelectItem>
-                  <SelectItem value="mixed">Mixto</SelectItem>
+                  <SelectItem value="blended">Mixto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -140,7 +218,7 @@ export default function NuevoCursoPage() {
           {!form.is_free && (
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="price">Precio</Label>
+                <Label htmlFor="price">Precio base</Label>
                 <Input id="price" type="number" min="0" step="0.01"
                   value={form.list_price} onChange={e => set('list_price', e.target.value)} />
               </div>
@@ -160,7 +238,7 @@ export default function NuevoCursoPage() {
           )}
           <div className="flex items-center gap-3">
             <Switch checked={form.has_certificate} onCheckedChange={v => set('has_certificate', v)} />
-            <Label>Incluye certificado</Label>
+            <Label>Incluye certificado de finalización</Label>
           </div>
         </CardContent>
       </Card>
@@ -172,7 +250,7 @@ export default function NuevoCursoPage() {
             <Label htmlFor="objectives">Objetivos de aprendizaje</Label>
             <Textarea id="objectives" rows={3} value={form.objectives}
               onChange={e => set('objectives', e.target.value)}
-              placeholder="Escribe un objetivo por línea: Al finalizar el curso podrás…" />
+              placeholder="Un objetivo por línea. Ej: Al finalizar el curso podrás…" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="requirements">Requisitos previos</Label>
@@ -193,8 +271,8 @@ export default function NuevoCursoPage() {
         <Button type="button" variant="outline" asChild>
           <Link href="/dashboard/tienda/cursos">Cancelar</Link>
         </Button>
-        <Button type="submit" disabled={saving} className="bg-brand-green hover:bg-brand-green-dark text-white">
-          {saving ? 'Guardando…' : 'Crear curso'}
+        <Button type="submit" disabled={saving || uploadingCover} className="bg-brand-green hover:bg-brand-green-dark text-white">
+          {saving ? <><FaSpinner className="mr-2 h-4 w-4 animate-spin" />Creando…</> : 'Crear curso'}
         </Button>
       </div>
     </form>

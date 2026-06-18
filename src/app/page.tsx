@@ -7,40 +7,33 @@ import {
   FaCertificate, FaBolt, FaRegSmile,
 } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Header } from '@/components/public/header'
 import { Footer } from '@/components/public/footer'
 import { getSession } from '@/lib/auth/session'
 import { HomeCourseCarousel, HomeStoreCarousel } from '@/components/public/home-carousels'
 import { NumberTicker } from '@/components/ui/number-ticker'
+import { db } from '@/lib/db'
+import { product_template, marketplace_store, res_users, product_category } from '@/lib/db/schema'
+import { eq, desc, and, isNull, sql } from 'drizzle-orm'
 
-/* ── Static data ── */
 const CATEGORIES = [
-  { name: 'Desarrollo',    slug: 'desarrollo-web',    icon: FaCode,      color: 'from-blue-500/15 to-cyan-400/10',    iconColor: 'text-blue-600',   count: 120 },
-  { name: 'Marketing',     slug: 'marketing-digital', icon: FaChartBar,  color: 'from-orange-500/15 to-yellow-400/10', iconColor: 'text-orange-500', count: 86 },
-  { name: 'Diseño',        slug: 'diseno-grafico',    icon: FaPalette,   color: 'from-purple-500/15 to-pink-400/10',  iconColor: 'text-purple-600', count: 74 },
-  { name: 'Negocios',      slug: 'negocios',          icon: FaBriefcase, color: 'from-primary/15 to-brand-secondary/10', iconColor: 'text-primary', count: 95 },
-  { name: 'Idiomas',       slug: 'idiomas',           icon: FaLanguage,  color: 'from-green-500/15 to-emerald-400/10', iconColor: 'text-green-600', count: 63 },
-  { name: 'Salud',         slug: 'salud-bienestar',   icon: FaHeartbeat, color: 'from-red-500/15 to-rose-400/10',     iconColor: 'text-red-500',   count: 48 },
-  { name: 'Fotografía',    slug: 'fotografia',        icon: FaCamera,    color: 'from-amber-500/15 to-yellow-400/10', iconColor: 'text-amber-600', count: 37 },
-  { name: 'Música',        slug: 'musica',            icon: FaMusic,     color: 'from-indigo-500/15 to-purple-400/10', iconColor: 'text-indigo-600', count: 29 },
+  { name: 'Desarrollo',    slug: 'desarrollo-web',    icon: FaCode,      color: 'from-blue-500/15 to-cyan-400/10',    iconColor: 'text-blue-600' },
+  { name: 'Marketing',     slug: 'marketing-digital', icon: FaChartBar,  color: 'from-orange-500/15 to-yellow-400/10', iconColor: 'text-orange-500' },
+  { name: 'Diseño',        slug: 'diseno-grafico',    icon: FaPalette,   color: 'from-purple-500/15 to-pink-400/10',  iconColor: 'text-purple-600' },
+  { name: 'Negocios',      slug: 'negocios',          icon: FaBriefcase, color: 'from-primary/15 to-brand-secondary/10', iconColor: 'text-primary' },
+  { name: 'Idiomas',       slug: 'idiomas',           icon: FaLanguage,  color: 'from-green-500/15 to-emerald-400/10', iconColor: 'text-green-600' },
+  { name: 'Salud',         slug: 'salud-bienestar',   icon: FaHeartbeat, color: 'from-red-500/15 to-rose-400/10',     iconColor: 'text-red-500' },
+  { name: 'Fotografía',    slug: 'fotografia',        icon: FaCamera,    color: 'from-amber-500/15 to-yellow-400/10', iconColor: 'text-amber-600' },
+  { name: 'Música',        slug: 'musica',            icon: FaMusic,     color: 'from-indigo-500/15 to-purple-400/10', iconColor: 'text-indigo-600' },
 ]
 
-const FEATURED_COURSES = [
-  { id: 1, title: 'Desarrollo Web Full Stack con React y Next.js', instructor: 'Carlos Mendoza', store: 'Academia Tech Demo', rating: 4.8, reviews: 312, price: 49, originalPrice: 199, duration: '48h', level: 'Principiante', cover: '', slug: 'desarrollo-web-full-stack-react-nextjs', badge: 'Bestseller' },
-  { id: 2, title: 'Marketing Digital Avanzado 2026', instructor: 'María López', store: 'Marketing Pro', rating: 4.7, reviews: 198, price: 39, originalPrice: 149, duration: '32h', level: 'Intermedio', cover: '', slug: 'marketing-digital-avanzado-2026', badge: 'Destacado' },
-  { id: 3, title: 'Diseño UI/UX con Figma: De cero a profesional', instructor: 'Ana García', store: 'Design Academy', rating: 4.9, reviews: 445, price: 59, originalPrice: 189, duration: '40h', level: 'Principiante', cover: '', slug: 'diseno-ui-ux-figma', badge: 'Nuevo' },
-  { id: 4, title: 'Excel Avanzado para Análisis de Datos', instructor: 'Roberto Sánchez', store: 'DataSkills', rating: 4.6, reviews: 267, price: 29, originalPrice: 99, duration: '24h', level: 'Intermedio', cover: '', slug: 'excel-avanzado-analisis-datos', badge: '' },
-  { id: 5, title: 'Python para Ciencia de Datos e IA', instructor: 'Luis Herrera', store: 'DataSkills', rating: 4.8, reviews: 521, price: 69, originalPrice: 249, duration: '60h', level: 'Principiante', cover: '', slug: 'python-ciencia-datos-ia', badge: 'Bestseller' },
-  { id: 6, title: 'Inglés para Negocios: C1 Express', instructor: 'Sandra Williams', store: 'LangPro', rating: 4.7, reviews: 183, price: 45, originalPrice: 179, duration: '36h', level: 'Intermedio', cover: '', slug: 'ingles-negocios-c1', badge: '' },
-]
-
-const FEATURED_STORES = [
-  { id: 1, name: 'Academia Tech Demo', slug: 'academia-tech-demo', category: 'Tecnología', rating: 4.9, courses: 24, students: 1840, verified: true, logo: '' },
-  { id: 2, name: 'Marketing Pro Academy', slug: 'marketing-pro-academy', category: 'Marketing', rating: 4.7, courses: 18, students: 1230, verified: true, logo: '' },
-  { id: 3, name: 'Design Academy MX', slug: 'design-academy-mx', category: 'Diseño', rating: 4.8, courses: 12, students: 980, verified: true, logo: '' },
-  { id: 4, name: 'LangPro Institute', slug: 'langpro-institute', category: 'Idiomas', rating: 4.6, courses: 9, students: 720, verified: true, logo: '' },
-]
+const LEVEL_MAP: Record<string, string> = {
+  beginner: 'Principiante', intermediate: 'Intermedio',
+  advanced: 'Avanzado', all_levels: 'Todos los niveles',
+}
+const STORE_TYPE_MAP: Record<string, string> = {
+  academy: 'Academia', individual: 'Instructor', corporate: 'Corporativo', government: 'Gobierno',
+}
 
 const PLANS = [
   {
@@ -76,8 +69,101 @@ const TRUST_ITEMS = [
   { icon: FaRegSmile,    title: 'Garantía 30 días', desc: 'Reembolso completo si no estás satisfecho con el curso.' },
 ]
 
+async function getFeaturedData() {
+  try {
+    const [rawCourses, rawStores, catCounts] = await Promise.all([
+      db.select({
+        id: product_template.id,
+        name: product_template.name,
+        slug: product_template.slug,
+        level: product_template.level,
+        list_price: product_template.list_price,
+        sale_price: product_template.sale_price,
+        is_free: product_template.is_free,
+        rating_avg: product_template.rating_avg,
+        rating_count: product_template.rating_count,
+        duration_hours: product_template.duration_hours,
+        is_bestseller: product_template.is_bestseller,
+        is_new: product_template.is_new,
+        is_featured: product_template.is_featured,
+        cover_url: product_template.cover_url,
+        store_name: marketplace_store.name,
+        instructor_name: res_users.name,
+      })
+      .from(product_template)
+      .leftJoin(marketplace_store, eq(product_template.store_id, marketplace_store.id))
+      .leftJoin(res_users, eq(product_template.instructor_id, res_users.id))
+      .where(and(eq(product_template.state, 'published'), isNull(product_template.deleted_at)))
+      .orderBy(desc(product_template.is_featured), desc(product_template.rating_avg), desc(product_template.total_students))
+      .limit(10),
+
+      db.select({
+        id: marketplace_store.id,
+        name: marketplace_store.name,
+        slug: marketplace_store.slug,
+        store_type: marketplace_store.store_type,
+        logo_url: marketplace_store.logo_url,
+        total_courses: marketplace_store.total_courses,
+        total_students: marketplace_store.total_students,
+        rating_avg: marketplace_store.rating_avg,
+        is_verified: marketplace_store.is_verified,
+      })
+      .from(marketplace_store)
+      .where(and(eq(marketplace_store.state, 'active'), isNull(marketplace_store.deleted_at)))
+      .orderBy(desc(marketplace_store.is_verified), desc(marketplace_store.total_students))
+      .limit(8),
+
+      db.select({
+        slug: product_category.slug,
+        count: sql<number>`count(${product_template.id})::int`,
+      })
+      .from(product_category)
+      .leftJoin(product_template, and(
+        eq(product_template.category_id, product_category.id),
+        eq(product_template.state, 'published'),
+      ))
+      .groupBy(product_category.slug),
+    ])
+
+    const catCountMap = Object.fromEntries(catCounts.map(c => [c.slug, c.count]))
+
+    const courses = rawCourses.map(c => ({
+      id: c.id,
+      title: c.name,
+      instructor: c.instructor_name ?? 'Instructor',
+      store: c.store_name ?? 'Academia',
+      slug: c.slug,
+      rating: Number(c.rating_avg ?? 0),
+      reviews: c.rating_count ?? 0,
+      price: c.is_free ? 0 : Number(c.sale_price ?? c.list_price ?? 0),
+      originalPrice: Number(c.list_price ?? 0),
+      duration: c.duration_hours ? `${Number(c.duration_hours)}h` : 'N/D',
+      level: LEVEL_MAP[c.level ?? 'all_levels'] ?? 'Todos los niveles',
+      cover: c.cover_url ?? '',
+      badge: c.is_bestseller ? 'Bestseller' : c.is_new ? 'Nuevo' : c.is_featured ? 'Destacado' : '',
+    }))
+
+    const stores = rawStores.map(s => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      category: STORE_TYPE_MAP[s.store_type ?? 'academy'] ?? 'Academia',
+      rating: Number(s.rating_avg ?? 0),
+      courses: s.total_courses ?? 0,
+      students: s.total_students ?? 0,
+      verified: s.is_verified ?? false,
+      logo: s.logo_url ?? '',
+    }))
+
+    return { courses, stores, catCountMap }
+  } catch {
+    return { courses: [], stores: [], catCountMap: {} }
+  }
+}
+
 export default async function HomePage() {
   const session = await getSession()
+  const { courses, stores, catCountMap } = await getFeaturedData()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -204,7 +290,7 @@ export default async function HomePage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold leading-tight">{cat.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{cat.count}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{catCountMap[cat.slug] ?? 0} cursos</p>
                   </div>
                 </Link>
               ))}
@@ -225,7 +311,7 @@ export default async function HomePage() {
                 <Link href="/cursos">Ver todos <FaArrowRight className="h-3.5 w-3.5" /></Link>
               </Button>
             </div>
-            <HomeCourseCarousel courses={FEATURED_COURSES} />
+            <HomeCourseCarousel courses={courses} />
           </div>
         </section>
 
@@ -261,7 +347,7 @@ export default async function HomePage() {
                 <Link href="/tiendas">Ver todas <FaArrowRight className="h-3.5 w-3.5" /></Link>
               </Button>
             </div>
-            <HomeStoreCarousel stores={FEATURED_STORES} />
+            <HomeStoreCarousel stores={stores} />
           </div>
         </section>
 

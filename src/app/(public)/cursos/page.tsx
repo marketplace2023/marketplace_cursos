@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   FaSearch, FaFilter, FaTimes, FaGraduationCap,
@@ -125,6 +125,10 @@ function FilterPanel({
 }
 
 export default function CursosPage() {
+  return <Suspense><CursosInner /></Suspense>
+}
+
+function CursosInner() {
   const searchParams = useSearchParams()
 
   const [courses, setCourses] = useState<Course[]>([])
