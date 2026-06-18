@@ -142,14 +142,14 @@ function QuestionRow({ question, onUpdated }: { question: Question; onUpdated: (
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium">{r.user_name ?? 'Usuario'}</span>
                         {r.is_instructor_reply && (
-                          <Badge className="bg-primary/10 text-primary border-0 text-[10px] px-1.5 py-0">Instructor</Badge>
+                          <Badge className="bg-primary/10 text-primary border-0 text-xs px-1.5 py-0">Instructor</Badge>
                         )}
                         {r.is_accepted && (
-                          <Badge className="bg-brand-green/10 text-brand-green border-0 text-[10px] px-1.5 py-0">
+                          <Badge className="bg-brand-green/10 text-brand-green border-0 text-xs px-1.5 py-0">
                             <FaCheckCircle className="h-2.5 w-2.5 mr-1" />Aceptada
                           </Badge>
                         )}
-                        <span className="text-[10px] text-muted-foreground">{timeAgo(r.created_at)}</span>
+                        <span className="text-xs text-muted-foreground">{timeAgo(r.created_at)}</span>
                       </div>
                       <p className="text-sm text-muted-foreground">{r.body}</p>
                     </div>

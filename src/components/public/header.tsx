@@ -17,6 +17,7 @@ import {
 import {
   Sheet, SheetContent, SheetTrigger,
 } from '@/components/ui/sheet'
+import { LogoutButton } from '@/components/auth/logout-button'
 
 const NAV_LINKS = [
   { label: 'Cursos',        href: '/cursos' },
@@ -83,7 +84,7 @@ export function Header({ user, cartCount = 0, notifCount = 0 }: HeaderProps) {
             <Link href={`${dashboardHref}/notificaciones`} className="relative p-2 rounded-md hover:bg-white/10 transition-colors">
               <FaBell className="h-5 w-5 text-primary-foreground/80" />
               {notifCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-brand-orange border-0">
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs bg-brand-orange border-0">
                   {notifCount > 9 ? '9+' : notifCount}
                 </Badge>
               )}
@@ -101,7 +102,7 @@ export function Header({ user, cartCount = 0, notifCount = 0 }: HeaderProps) {
           <Link href="/carrito" className="relative p-2 rounded-md hover:bg-white/10 transition-colors">
             <FaShoppingCart className="h-5 w-5 text-primary-foreground/80" />
             {cartCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-brand-green border-0">
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs bg-brand-green border-0">
                 {cartCount}
               </Badge>
             )}
@@ -144,11 +145,7 @@ export function Header({ user, cartCount = 0, notifCount = 0 }: HeaderProps) {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <form action="/api/v1/auth/logout" method="POST">
-                    <button type="submit" className="flex w-full items-center gap-2 text-destructive">
-                      <FaSignOutAlt className="h-4 w-4" /> Cerrar sesión
-                    </button>
-                  </form>
+                  <LogoutButton />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

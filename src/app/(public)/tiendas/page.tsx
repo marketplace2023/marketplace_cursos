@@ -57,25 +57,26 @@ function StoreCard({ store }: { store: Store }) {
   const typeLabel = STORE_TYPES.find(t => t.value === store.store_type)?.label ?? store.store_type
 
   return (
-    <Link href={`/tiendas/${store.slug}`} className="group">
-      <Card className="h-full hover:shadow-lg transition-all hover:-translate-y-0.5 overflow-hidden">
-        <CardContent className="p-5 flex flex-col gap-3">
+    <Link href={`/tiendas/${store.slug}`} className="group block h-full">
+      <div className="h-full rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 overflow-hidden flex flex-col">
+        <div className="h-1.5 w-full bg-linear-to-r from-brand-green to-brand-secondary" />
+        <div className="p-5 flex flex-col gap-3 flex-1">
           {/* Logo + verified */}
           <div className="flex items-start gap-3">
-            <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-border/30 shadow-sm">
               {store.logo_url ? (
                 <img src={store.logo_url} alt={store.name} className="h-14 w-14 object-cover" />
               ) : (
-                <FaStore className="h-6 w-6 text-muted-foreground" />
+                <FaStore className="h-6 w-6 text-muted-foreground/50" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-bold truncate group-hover:text-primary transition-colors">
                   {store.name}
                 </h3>
                 {store.is_verified && (
-                  <FaCheckCircle className="h-4 w-4 shrink-0 text-brand-green" />
+                  <FaCheckCircle className="h-3.5 w-3.5 shrink-0 text-brand-green" />
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{typeLabel}</p>
@@ -105,18 +106,23 @@ function StoreCard({ store }: { store: Store }) {
           </div>
 
           {/* Stats */}
-          <div className="flex gap-4 text-xs text-muted-foreground border-t pt-3">
+          <div className="flex gap-4 text-xs text-muted-foreground border-t border-border/50 pt-3 mt-auto">
             <span className="flex items-center gap-1">
-              <FaBookOpen className="h-3 w-3" />
+              <FaBookOpen className="h-3 w-3 text-primary" />
               {store.total_courses} cursos
             </span>
             <span className="flex items-center gap-1">
-              <FaUsers className="h-3 w-3" />
+              <FaUsers className="h-3 w-3 text-brand-green" />
               {store.total_students.toLocaleString()} estudiantes
             </span>
+            {store.is_verified && (
+              <span className="ml-auto text-brand-green font-semibold flex items-center gap-1">
+                <FaCheckCircle className="h-3 w-3" /> Verificada
+              </span>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </Link>
   )
 }
@@ -202,13 +208,31 @@ export default function TiendasPage() {
   const activeCount = Object.values(filters).filter(Boolean).length
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-heading font-bold text-primary mb-1">Academias y Tiendas</h1>
-        <p className="text-muted-foreground">
-          {meta ? `${meta.total.toLocaleString()} academias disponibles` : 'Cargando…'}
-        </p>
+    <div className="min-h-screen">
+      {/* Hero */}
+      <div className="relative overflow-hidden bg-linear-to-br from-brand-green via-[#168a4a] to-primary text-white py-16">
+        <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 -left-16 h-48 w-48 rounded-full bg-brand-orange/10 blur-3xl" />
+        <div className="relative container mx-auto px-4">
+          <div className="flex items-center gap-5">
+            <div className="h-16 w-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20">
+              <FaStore className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold font-heading">Academias y Tiendas</h1>
+              <p className="text-white/75 mt-1.5">Descubre academias verificadas con cursos de alta calidad</p>
+              {meta && (
+                <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium mt-2">
+                  <FaStore className="h-3 w-3 text-brand-orange" />
+                  {meta.total.toLocaleString()} academias disponibles
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
+
+    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
 
       {/* Search + sort */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -298,6 +322,7 @@ export default function TiendasPage() {
           )}
         </div>
       </div>
+    </div>
     </div>
   )
 }

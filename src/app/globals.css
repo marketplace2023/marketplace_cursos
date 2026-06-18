@@ -174,3 +174,43 @@
     @apply font-sans;
   }
 }
+
+/* ─── Swiper overrides ─── */
+.store-swiper .swiper-button-next,
+.store-swiper .swiper-button-prev {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: hsl(var(--card, 0 0% 100%));
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+  top: 38%;
+  color: var(--foreground, #1e293b);
+}
+.store-swiper .swiper-button-next::after,
+.store-swiper .swiper-button-prev::after {
+  font-size: 13px;
+  font-weight: 900;
+}
+.store-swiper .swiper-button-next:hover,
+.store-swiper .swiper-button-prev:hover {
+  background: var(--brand-green, #1FA55B);
+  color: #fff;
+  border-color: var(--brand-green, #1FA55B);
+}
+.store-swiper .swiper-button-disabled {
+  opacity: 0.3;
+}
+.store-swiper .swiper-pagination-bullet {
+  background: var(--muted-foreground, #94a3b8);
+  opacity: 0.4;
+  width: 6px;
+  height: 6px;
+}
+.store-swiper .swiper-pagination-bullet-active {
+  background: var(--brand-green, #1FA55B);
+  opacity: 1;
+  width: 20px;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}

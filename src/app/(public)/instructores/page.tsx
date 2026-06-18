@@ -34,13 +34,15 @@ const SORT_OPTIONS = [
 function InstructorCard({ instructor: i }: { instructor: Instructor }) {
   const initials = i.display_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
   return (
-    <Link href={`/instructores/${i.username ?? i.id}`} className="group">
-      <Card className="h-full hover:shadow-lg transition-all hover:-translate-y-0.5 overflow-hidden">
-        <CardContent className="p-5 flex flex-col gap-3">
+    <Link href={`/instructores/${i.username ?? i.id}`} className="group block h-full">
+      <div className="h-full rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 overflow-hidden flex flex-col">
+        {/* Colored top stripe */}
+        <div className="h-1.5 w-full bg-linear-to-r from-brand-purple to-brand-secondary" />
+        <div className="p-5 flex flex-col gap-3 flex-1">
           <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16 shrink-0 border">
+            <Avatar className="h-16 w-16 shrink-0 ring-2 ring-border/50 shadow-sm">
               <AvatarImage src={i.avatar_url ?? undefined} alt={i.display_name} />
-              <AvatarFallback className="text-lg font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
+              <AvatarFallback className="text-lg font-bold bg-linear-to-br from-brand-purple/20 to-primary/20 text-primary">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-base leading-tight group-hover:text-primary transition-colors line-clamp-1">
@@ -59,26 +61,26 @@ function InstructorCard({ instructor: i }: { instructor: Instructor }) {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-lg bg-muted/50 p-2">
+            <div className="rounded-xl bg-brand-orange/8 p-2.5">
               <div className="flex items-center justify-center gap-1 text-brand-orange font-bold text-sm">
                 <FaStar className="h-3 w-3" />
                 {Number(i.rating_avg ?? 0).toFixed(1)}
               </div>
-              <p className="text-[10px] text-muted-foreground">{(i.rating_count ?? 0).toLocaleString()} reseñas</p>
+              <p className="text-xs text-muted-foreground">{(i.rating_count ?? 0).toLocaleString()} reseñas</p>
             </div>
-            <div className="rounded-lg bg-muted/50 p-2">
-              <div className="flex items-center justify-center gap-1 font-bold text-sm">
-                <FaUsers className="h-3 w-3 text-primary" />
+            <div className="rounded-xl bg-primary/8 p-2.5">
+              <div className="flex items-center justify-center gap-1 font-bold text-sm text-primary">
+                <FaUsers className="h-3 w-3" />
                 {(i.total_students ?? 0).toLocaleString()}
               </div>
-              <p className="text-[10px] text-muted-foreground">estudiantes</p>
+              <p className="text-xs text-muted-foreground">estudiantes</p>
             </div>
-            <div className="rounded-lg bg-muted/50 p-2">
-              <div className="flex items-center justify-center gap-1 font-bold text-sm">
-                <FaBookOpen className="h-3 w-3 text-primary" />
+            <div className="rounded-xl bg-brand-green/8 p-2.5">
+              <div className="flex items-center justify-center gap-1 font-bold text-sm text-brand-green">
+                <FaBookOpen className="h-3 w-3" />
                 {i.total_courses ?? 0}
               </div>
-              <p className="text-[10px] text-muted-foreground">cursos</p>
+              <p className="text-xs text-muted-foreground">cursos</p>
             </div>
           </div>
 
@@ -91,21 +93,21 @@ function InstructorCard({ instructor: i }: { instructor: Instructor }) {
           {i.expertise.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {i.expertise.slice(0, 3).map((tag, idx) => (
-                <Badge key={idx} variant="secondary" className="text-[10px] px-2 py-0">{tag}</Badge>
+                <span key={idx} className="text-xs bg-muted text-muted-foreground px-2.5 py-0.5 rounded-full font-medium">{tag}</span>
               ))}
               {i.expertise.length > 3 && (
-                <Badge variant="outline" className="text-[10px] px-2 py-0">+{i.expertise.length - 3}</Badge>
+                <span className="text-xs border border-border/60 text-muted-foreground px-2.5 py-0.5 rounded-full">+{i.expertise.length - 3}</span>
               )}
             </div>
           )}
 
-          <div className="mt-auto pt-2">
-            <span className="text-xs text-primary font-medium group-hover:underline flex items-center gap-1">
-              Ver perfil <FaChevronRight className="h-3 w-3" />
+          <div className="mt-auto pt-3 border-t border-border/50">
+            <span className="text-xs text-primary font-semibold group-hover:underline flex items-center gap-1">
+              Ver perfil completo <FaChevronRight className="h-3 w-3" />
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </Link>
   )
 }
@@ -165,21 +167,30 @@ export default function InstructoresPage() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <div className="bg-linear-to-br from-primary/90 to-primary text-white py-14">
-        <div className="container mx-auto px-4">
-          <nav className="flex items-center gap-2 text-sm text-white/70 mb-4">
-            <Link href="/" className="hover:text-white">Inicio</Link>
+      <div className="relative overflow-hidden bg-linear-to-br from-brand-purple via-[#5c3aa5] to-primary text-white py-16">
+        <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 -left-16 h-48 w-48 rounded-full bg-brand-green/10 blur-3xl" />
+        <div className="relative container mx-auto px-4">
+          <nav className="flex items-center gap-2 text-sm text-white/60 mb-5">
+            <Link href="/" className="hover:text-white transition-colors">Inicio</Link>
             <FaChevronRight className="h-3 w-3" />
             <span className="text-white">Instructores</span>
           </nav>
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center">
-              <FaUserTie className="h-7 w-7 text-white" />
+          <div className="flex items-center gap-5">
+            <div className="h-16 w-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20">
+              <FaUserTie className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">Nuestros instructores</h1>
-              <p className="text-white/80 mt-1">Aprende de profesionales con experiencia real</p>
-              {meta && <p className="text-white/60 text-sm mt-1">{meta.total.toLocaleString()} instructores</p>}
+              <h1 className="text-3xl md:text-4xl font-bold font-heading">Nuestros instructores</h1>
+              <p className="text-white/75 mt-1.5">Aprende de profesionales con experiencia real en la industria</p>
+              {meta && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium">
+                    <FaUserTie className="h-3 w-3 text-brand-green" />
+                    {meta.total.toLocaleString()} instructores
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -189,17 +200,17 @@ export default function InstructoresPage() {
         {/* Search + Sort */}
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
           <div className="relative flex-1">
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar instructor…"
               value={q}
               onChange={e => setQ(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchInstructors(1)}
-              className="pl-9"
+              className="pl-10 h-11 rounded-xl"
             />
           </div>
           <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-full sm:w-48">
+            <SelectTrigger className="w-full sm:w-52 h-11 rounded-xl">
               <SelectValue placeholder="Ordenar por" />
             </SelectTrigger>
             <SelectContent>
@@ -207,7 +218,7 @@ export default function InstructoresPage() {
             </SelectContent>
           </Select>
           {q && (
-            <Button onClick={() => fetchInstructors(1)} className="shrink-0">Buscar</Button>
+            <Button onClick={() => fetchInstructors(1)} className="shrink-0 h-11 rounded-xl">Buscar</Button>
           )}
         </div>
 

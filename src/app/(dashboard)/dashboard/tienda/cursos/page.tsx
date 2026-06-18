@@ -5,9 +5,7 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { marketplace_store, product_template } from '@/lib/db/schema'
 import { eq, desc, isNull, and } from 'drizzle-orm'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/utils'
 
 const STATE: Record<string, { label: string; class: string }> = {
@@ -72,41 +70,41 @@ export default async function TiendaCursosPage() {
           {courses.map(c => {
             const st = STATE[c.state ?? 'draft'] ?? STATE.draft
             return (
-              <Card key={c.id} className="hover:shadow-sm transition-shadow">
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="h-16 w-24 rounded-lg bg-muted overflow-hidden shrink-0">
-                    {c.cover_url
-                      ? <img src={c.cover_url} alt={c.name} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center"><FaBookOpen className="h-6 w-6 text-muted-foreground/30" /></div>
-                    }
+              <div key={c.id} className="flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:border-brand-green/30 transition-all">
+                <div className="h-16 w-24 rounded-xl bg-muted overflow-hidden shrink-0 ring-1 ring-border/30">
+                  {c.cover_url
+                    ? <img src={c.cover_url} alt={c.name} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-primary/10 to-brand-purple/10">
+                        <FaBookOpen className="h-6 w-6 text-muted-foreground/30" />
+                      </div>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm line-clamp-1">{c.name}</p>
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><FaUsers className="h-3 w-3 text-brand-green" />{c.total_students ?? 0}</span>
+                    <span className="flex items-center gap-1">
+                      <FaStar className="h-3 w-3 text-brand-orange" />
+                      {Number(c.rating_avg ?? 0).toFixed(1)} ({c.rating_count ?? 0})
+                    </span>
+                    <span className="capitalize">{c.level}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm line-clamp-1">{c.name}</p>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><FaUsers className="h-3 w-3" />{c.total_students ?? 0}</span>
-                      <span className="flex items-center gap-1">
-                        <FaStar className="h-3 w-3 text-brand-orange" />
-                        {Number(c.rating_avg ?? 0).toFixed(1)} ({c.rating_count ?? 0})
-                      </span>
-                      <span className="capitalize">{c.level}</span>
-                    </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <p className="font-bold text-sm">
+                    {c.is_free ? <span className="text-brand-green font-semibold">Gratis</span> : formatCurrency(Number(c.list_price), c.currency ?? 'USD')}
+                  </p>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 ${st.class}`}>{st.label}</span>
+                  <div className="flex gap-1">
+                    <Button asChild variant="ghost" size="sm" className="rounded-xl">
+                      <Link href={`/cursos/${c.slug}`} target="_blank"><FaEye className="h-3.5 w-3.5" /></Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="gap-1 text-xs rounded-xl">
+                      <Link href={`/dashboard/tienda/cursos/${c.id}`}><FaEdit className="h-3 w-3" />Editar</Link>
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <p className="font-bold text-sm">
-                      {c.is_free ? <span className="text-brand-green">Gratis</span> : formatCurrency(Number(c.list_price), c.currency ?? 'USD')}
-                    </p>
-                    <Badge className={`text-xs border-0 ${st.class}`}>{st.label}</Badge>
-                    <div className="flex gap-1">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/cursos/${c.slug}`} target="_blank"><FaEye className="h-3.5 w-3.5" /></Link>
-                      </Button>
-                      <Button asChild variant="outline" size="sm" className="gap-1 text-xs">
-                        <Link href={`/dashboard/tienda/cursos/${c.id}`}><FaEdit className="h-3 w-3" />Editar</Link>
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           })}
         </div>

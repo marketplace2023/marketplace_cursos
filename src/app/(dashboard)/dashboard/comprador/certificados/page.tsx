@@ -5,9 +5,7 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { marketplace_certificate, product_template, marketplace_store } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
 
 export default async function CertificadosPage() {
@@ -48,49 +46,51 @@ export default async function CertificadosPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {certs.map(c => (
-            <Card key={c.id} className="hover:shadow-md transition-shadow border-brand-purple/20">
-              <CardContent className="p-5 flex flex-col gap-3">
+            <div key={c.id} className="flex flex-col rounded-2xl border border-brand-purple/20 bg-card overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              {/* Purple top stripe */}
+              <div className="h-1.5 bg-linear-to-r from-brand-purple to-brand-secondary" />
+              <div className="p-5 flex flex-col gap-3 flex-1">
                 <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-brand-purple/10 flex items-center justify-center shrink-0">
-                    <FaCertificate className="h-6 w-6 text-brand-purple" />
+                  <div className="h-14 w-14 rounded-2xl bg-linear-to-br from-brand-purple/15 to-brand-purple/5 flex items-center justify-center shrink-0 border border-brand-purple/20">
+                    <FaCertificate className="h-7 w-7 text-brand-purple" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm line-clamp-2">{c.course_name}</h3>
-                    {c.store_name && <p className="text-xs text-muted-foreground">{c.store_name}</p>}
+                    <h3 className="font-semibold text-sm line-clamp-2 leading-snug">{c.course_name}</h3>
+                    {c.store_name && <p className="text-xs text-muted-foreground mt-0.5">{c.store_name}</p>}
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  <span>Emitido: {c.issued_at ? formatDate(c.issued_at) : '—'}</span>
+                <div className="rounded-xl bg-muted/50 p-3 flex flex-col gap-1 text-xs text-muted-foreground border border-border/50">
+                  <span>Emitido: <strong className="text-foreground">{c.issued_at ? formatDate(c.issued_at) : '—'}</strong></span>
                   {c.verify_code && (
-                    <span className="font-mono">ID: {c.verify_code}</span>
+                    <span className="font-mono text-brand-purple/80">ID: {c.verify_code}</span>
                   )}
                 </div>
 
-                <Badge className="w-fit bg-brand-purple/10 text-brand-purple border-(--brand-purple)/30">
-                  Certificado verificado
-                </Badge>
+                <span className="w-fit flex items-center gap-1.5 text-xs font-semibold bg-brand-purple/10 text-brand-purple px-2.5 py-1 rounded-full border border-brand-purple/20">
+                  <FaCertificate className="h-3 w-3" /> Certificado verificado
+                </span>
 
-                <div className="flex gap-2 mt-auto">
+                <div className="flex gap-2 mt-auto pt-2 border-t border-border/50">
                   {c.pdf_url && (
-                    <Button asChild size="sm" variant="outline" className="gap-1 flex-1">
+                    <Button asChild size="sm" variant="outline" className="gap-1.5 flex-1 rounded-xl border-brand-purple/30 text-brand-purple hover:bg-brand-purple/5">
                       <a href={c.pdf_url} download>
                         <FaDownload className="h-3 w-3" /> Descargar PDF
                       </a>
                     </Button>
                   )}
                   {c.verify_url && (
-                    <Button asChild size="sm" variant="ghost" className="gap-1">
+                    <Button asChild size="sm" variant="ghost" className="gap-1 rounded-xl">
                       <a href={c.verify_url} target="_blank" rel="noopener noreferrer">
                         <FaExternalLinkAlt className="h-3 w-3" />
                       </a>
                     </Button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}

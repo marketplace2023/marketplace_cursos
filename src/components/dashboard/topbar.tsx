@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { SidebarNav } from './sidebar-nav'
 import type { NavItem } from './sidebar-nav'
+import { LogoutButton } from '@/components/auth/logout-button'
 
 interface TopbarProps {
   user: { name: string; role: string; avatar_url?: string | null }
@@ -30,12 +31,14 @@ export function DashboardTopbar({ user, title, navItems, notifCount = 0 }: Topba
             {open ? <FaTimes className="h-5 w-5" /> : <FaBars className="h-5 w-5" />}
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0">
-          <div className="flex h-14 items-center gap-2 border-b px-4">
-            <FaGraduationCap className="h-5 w-5 text-brand-green" />
-            <span className="font-bold text-primary">EduMarket</span>
+        <SheetContent side="left" className="w-64 p-0 bg-sidebar border-sidebar-border">
+          <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-green">
+              <FaGraduationCap className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-bold text-sidebar-foreground">EduMarket</span>
           </div>
-          <div className="p-4 overflow-y-auto h-[calc(100vh-56px)]">
+          <div className="px-3 py-3 overflow-y-auto h-[calc(100vh-64px)]">
             <SidebarNav items={navItems} />
           </div>
         </SheetContent>
@@ -50,7 +53,7 @@ export function DashboardTopbar({ user, title, navItems, notifCount = 0 }: Topba
           <Link href="notificaciones">
             <FaBell className="h-5 w-5" />
             {notifCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive border-0">
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs bg-destructive border-0">
                 {notifCount > 9 ? '9+' : notifCount}
               </Badge>
             )}
@@ -83,11 +86,7 @@ export function DashboardTopbar({ user, title, navItems, notifCount = 0 }: Topba
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <form action="/api/v1/auth/logout" method="POST" className="w-full">
-                <button type="submit" className="flex w-full items-center gap-2 text-destructive">
-                  <FaSignOutAlt className="h-4 w-4" /> Cerrar sesión
-                </button>
-              </form>
+              <LogoutButton />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

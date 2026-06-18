@@ -5,7 +5,6 @@ import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db'
 import { marketplace_enrollment, product_template, marketplace_store } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -57,50 +56,68 @@ export default async function MisCursosPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {enrollments.map(e => (
-            <Card key={e.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {enrollments.map(e => {
+            const pct = Number(e.progress_pct ?? 0)
+            const isCompleted = e.state === 'completed'
+            return (
+            <div key={e.id} className="flex flex-col rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="aspect-video bg-muted relative overflow-hidden">
                 {e.course_cover
                   ? <img src={e.course_cover} alt={e.course_name ?? ''} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center"><FaBookOpen className="h-10 w-10 text-muted-foreground/30" /></div>
+                  : <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-primary/10 to-brand-purple/10">
+                      <FaBookOpen className="h-10 w-10 text-muted-foreground/20" />
+                    </div>
                 }
-                {e.state === 'completed' && (
-                  <div className="absolute inset-0 bg-brand-green/80 flex items-center justify-center">
-                    <FaCheckCircle className="h-12 w-12 text-white" />
+                {isCompleted && (
+                  <div className="absolute inset-0 bg-brand-green/85 flex items-center justify-center">
+                    <FaCheckCircle className="h-12 w-12 text-white drop-shadow-lg" />
+                  </div>
+                )}
+                {/* Progress bar overlay at bottom */}
+                {!isCompleted && (
+                  <div className="absolute bottom-0 inset-x-0 h-1.5 bg-black/30">
+                    <div className="h-full bg-brand-green transition-all" style={{ width: `${pct}%` }} />
                   </div>
                 )}
               </div>
-              <CardContent className="flex flex-col flex-1 gap-3 p-4">
-                {e.store_name && <p className="text-xs text-brand-secondary font-medium">{e.store_name}</p>}
-                <h3 className="font-semibold text-sm line-clamp-2">{e.course_name}</h3>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-col flex-1 gap-3 p-4">
+                {e.store_name && <p className="text-xs text-brand-secondary font-semibold">{e.store_name}</p>}
+                <h3 className="font-semibold text-sm line-clamp-2 leading-snug">{e.course_name}</h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   {e.duration_hours && (
                     <span className="flex items-center gap-1"><FaClock className="h-3 w-3" />{durationLabel(Number(e.duration_hours))}</span>
                   )}
                   {e.total_lessons && <span>{e.total_lessons} lecciones</span>}
                 </div>
                 <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-muted-foreground">Progreso</span>
-                    <span className="font-medium">{Number(e.progress_pct ?? 0).toFixed(0)}%</span>
+                    <span className={`font-bold ${isCompleted ? 'text-brand-green' : pct >= 50 ? 'text-primary' : 'text-muted-foreground'}`}>
+                      {pct.toFixed(0)}%
+                    </span>
                   </div>
-                  <Progress value={Number(e.progress_pct ?? 0)} className="h-1.5" />
+                  <Progress value={pct} className="h-2 rounded-full" />
                 </div>
-                <div className="flex items-center justify-between mt-auto">
-                  <Badge variant={STATE_COLORS[e.state ?? 'active'] as 'secondary' | 'default' | 'destructive' | 'outline'} className="text-xs">
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    isCompleted ? 'bg-brand-green/10 text-brand-green' :
+                    e.state === 'suspended' ? 'bg-destructive/10 text-destructive' :
+                    'bg-primary/10 text-primary'
+                  }`}>
                     {STATE_LABELS[e.state ?? 'active']}
-                  </Badge>
-                  <Button asChild size="sm" className="gap-1 bg-primary">
+                  </span>
+                  <Button asChild size="sm" className="gap-1.5 rounded-xl bg-primary hover:bg-primary/90">
                     <Link href={`/dashboard/comprador/cursos/${e.course_slug}`}>
                       <FaPlay className="h-3 w-3" />
-                      {e.state === 'completed' ? 'Repasar' : 'Continuar'}
+                      {isCompleted ? 'Repasar' : 'Continuar'}
                     </Link>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            </div>
+            )
+          })}
         </div>
       )}
     </div>

@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
   FaBookOpen, FaCheckCircle, FaCertificate,
-  FaShoppingBag, FaHeart, FaArrowRight, FaPlay, FaFire,
+  FaShoppingBag, FaHeart, FaArrowRight, FaPlay,
+  FaFire, FaGraduationCap, FaChevronRight,
 } from 'react-icons/fa'
 import { getSession } from '@/lib/auth/session'
 import { db } from '@/lib/db'
@@ -15,11 +16,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { NumberTicker } from '@/components/ui/number-ticker'
 import { formatCurrency } from '@/lib/utils'
 
 const STATE_LABELS: Record<string, string> = {
   active: 'En progreso', completed: 'Completado',
   suspended: 'Suspendido', expired: 'Expirado', refunded: 'Reembolsado',
+}
+
+const ORDER_STATE_COLORS: Record<string, string> = {
+  paid: 'bg-brand-green/10 text-brand-green border-brand-green/20',
+  pending: 'bg-brand-orange/10 text-brand-orange border-brand-orange/20',
+  cancelled: 'bg-destructive/10 text-destructive border-destructive/20',
+  refunded: 'bg-muted text-muted-foreground border-border',
 }
 
 export default async function CompradorPage() {
@@ -47,124 +56,257 @@ export default async function CompradorPage() {
       .where(eq(marketplace_enrollment.user_id, userId))
       .orderBy(desc(marketplace_enrollment.updated_at))
       .limit(4),
-    db.select({ id: sale_order.id, name: sale_order.name, state: sale_order.state, amount_total: sale_order.amount_total, currency: sale_order.currency, created_at: sale_order.created_at })
+    db.select({
+      id: sale_order.id, name: sale_order.name, state: sale_order.state,
+      amount_total: sale_order.amount_total, currency: sale_order.currency,
+      created_at: sale_order.created_at,
+    })
       .from(sale_order)
       .where(eq(sale_order.buyer_id, userId))
       .orderBy(desc(sale_order.created_at))
       .limit(3),
   ])
 
+  const firstName = session.name.split(' ')[0]
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
+
   const STATS = [
-    { label: 'Cursos inscritos', value: enrolled.c, icon: FaBookOpen, color: 'text-primary', href: '/dashboard/comprador/cursos' },
-    { label: 'Completados', value: completed.c, icon: FaCheckCircle, color: 'text-brand-green', href: '/dashboard/comprador/cursos' },
-    { label: 'Certificados', value: certs.c, icon: FaCertificate, color: 'text-brand-purple', href: '/dashboard/comprador/certificados' },
-    { label: 'Favoritos', value: favs.c, icon: FaHeart, color: 'text-destructive', href: '/dashboard/comprador/favoritos' },
+    {
+      label: 'Cursos inscritos',
+      value: enrolled.c,
+      icon: FaBookOpen,
+      href: '/dashboard/comprador/cursos',
+      gradient: 'from-primary/8 to-brand-secondary/5',
+      iconBg: 'bg-primary',
+      border: 'border-primary/10',
+      textColor: 'text-primary',
+    },
+    {
+      label: 'Completados',
+      value: completed.c,
+      icon: FaCheckCircle,
+      href: '/dashboard/comprador/cursos',
+      gradient: 'from-brand-green/10 to-brand-green/5',
+      iconBg: 'bg-brand-green',
+      border: 'border-brand-green/15',
+      textColor: 'text-brand-green',
+    },
+    {
+      label: 'Certificados',
+      value: certs.c,
+      icon: FaCertificate,
+      href: '/dashboard/comprador/certificados',
+      gradient: 'from-brand-purple/10 to-brand-purple/5',
+      iconBg: 'bg-brand-purple',
+      border: 'border-brand-purple/15',
+      textColor: 'text-brand-purple',
+    },
+    {
+      label: 'Favoritos',
+      value: favs.c,
+      icon: FaHeart,
+      href: '/dashboard/comprador/favoritos',
+      gradient: 'from-destructive/10 to-destructive/5',
+      iconBg: 'bg-destructive',
+      border: 'border-destructive/15',
+      textColor: 'text-destructive',
+    },
+  ]
+
+  const QUICK_ACTIONS = [
+    { label: 'Explorar cursos',    href: '/cursos',                                    icon: FaFire,        color: 'text-brand-orange bg-brand-orange/10 hover:bg-brand-orange/20' },
+    { label: 'Mis certificados',   href: '/dashboard/comprador/certificados',           icon: FaCertificate, color: 'text-brand-purple bg-brand-purple/10 hover:bg-brand-purple/20' },
+    { label: 'Favoritos',          href: '/dashboard/comprador/favoritos',              icon: FaHeart,       color: 'text-destructive bg-destructive/10 hover:bg-destructive/20' },
+    { label: 'Mis compras',        href: '/dashboard/comprador/ordenes',                icon: FaShoppingBag, color: 'text-primary bg-primary/10 hover:bg-primary/20' },
   ]
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-heading font-bold">¡Hola, {session.name.split(' ')[0]}!</h1>
-        <p className="text-muted-foreground mt-0.5">Continúa tu aprendizaje donde lo dejaste</p>
+
+      {/* ── Greeting banner ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-primary to-brand-secondary p-6 text-white shadow-lg">
+        {/* decorative circles */}
+        <div className="pointer-events-none absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-brand-green/20" />
+        <div className="pointer-events-none absolute top-4 right-32 h-16 w-16 rounded-full bg-white/5" />
+
+        <div className="relative flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-white/70 font-medium">{greeting},</p>
+            <h1 className="text-2xl font-heading font-bold mt-0.5">{firstName} 👋</h1>
+            <p className="text-white/60 text-sm mt-1">
+              {enrolled.c === 0
+                ? 'Comienza tu camino de aprendizaje hoy'
+                : `Tienes ${enrolled.c - completed.c} curso${enrolled.c - completed.c !== 1 ? 's' : ''} en progreso`}
+            </p>
+          </div>
+          <div className="shrink-0 hidden sm:flex">
+            <div className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+              <FaGraduationCap className="h-8 w-8 text-brand-green" />
+            </div>
+          </div>
+        </div>
+
+        {enrolled.c > 0 && (
+          <div className="relative mt-4 flex items-center gap-3">
+            <div className="flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-brand-green transition-all"
+                style={{ width: `${Math.round((completed.c / enrolled.c) * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs text-white/70 shrink-0 tabular-nums">
+              {Math.round((completed.c / enrolled.c) * 100)}% completado
+            </span>
+          </div>
+        )}
       </div>
 
+      {/* ── Stat cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {STATS.map(s => (
-          <Link key={s.label} href={s.href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={`h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 ${s.color}`}>
-                  <s.icon className="h-5 w-5" />
+          <Link key={s.label} href={s.href} className="group">
+            <Card className={`relative overflow-hidden border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 bg-linear-to-br ${s.gradient} ${s.border}`}>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`h-10 w-10 rounded-xl ${s.iconBg} flex items-center justify-center shadow-sm`}>
+                    <s.icon className="h-5 w-5 text-white" />
+                  </div>
+                  <FaChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{s.value}</p>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                </div>
+                <NumberTicker value={s.value} className={`text-3xl font-bold tabular-nums ${s.textColor}`} />
+                <p className="text-xs text-muted-foreground mt-1 font-medium">{s.label}</p>
               </CardContent>
             </Card>
           </Link>
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* ── Main grid ── */}
+      <div className="grid gap-5 lg:grid-cols-3">
+
+        {/* Recent courses */}
         <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base">Mis cursos recientes</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="gap-1 text-xs">
-                <Link href="/dashboard/comprador/cursos">Ver todos <FaArrowRight className="h-3 w-3" /></Link>
+          <Card className="h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+              <div>
+                <CardTitle className="text-base font-semibold">Mis cursos recientes</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Continúa donde lo dejaste</p>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs text-primary hover:text-primary">
+                <Link href="/dashboard/comprador/cursos">
+                  Ver todos <FaArrowRight className="h-3 w-3" />
+                </Link>
               </Button>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="p-4 flex flex-col gap-3">
               {courses.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FaBookOpen className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">Aún no tienes cursos.{' '}
-                    <Link href="/cursos" className="text-primary hover:underline">¡Empieza ahora!</Link>
-                  </p>
-                </div>
-              ) : courses.map(c => (
-                <div key={c.id} className="flex gap-3">
-                  <div className="h-14 w-20 rounded-lg bg-muted overflow-hidden shrink-0">
-                    {c.course_cover
-                      ? <img src={c.course_cover} alt={c.course_name ?? ''} className="h-full w-full object-cover" />
-                      : <div className="h-full w-full flex items-center justify-center"><FaBookOpen className="h-5 w-5 text-muted-foreground/40" /></div>
-                    }
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-3">
+                    <FaBookOpen className="h-7 w-7 text-muted-foreground/40" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm line-clamp-1">{c.course_name}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <Progress value={Number(c.progress_pct ?? 0)} className="flex-1 h-1.5" />
-                      <span className="text-xs text-muted-foreground shrink-0">{Number(c.progress_pct ?? 0).toFixed(0)}%</span>
-                    </div>
-                    <Badge variant={c.state === 'completed' ? 'default' : 'secondary'} className="text-xs mt-1">
-                      {STATE_LABELS[c.state ?? 'active'] ?? c.state}
-                    </Badge>
-                  </div>
-                  <Button asChild size="sm" variant="ghost" className="shrink-0 self-center">
-                    <Link href={`/dashboard/comprador/cursos/${c.course_slug}`}><FaPlay className="h-3 w-3" /></Link>
+                  <p className="text-sm font-medium text-muted-foreground">Aún no tienes cursos</p>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5 mb-4">Explora el catálogo y empieza a aprender</p>
+                  <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-white gap-2">
+                    <Link href="/cursos"><FaFire className="h-3.5 w-3.5" />Explorar cursos</Link>
                   </Button>
                 </div>
-              ))}
+              ) : (
+                courses.map(c => {
+                  const pct = Number(c.progress_pct ?? 0)
+                  const isDone = c.state === 'completed'
+                  return (
+                    <div key={c.id} className="group flex items-center gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors">
+                      <div className="h-14 w-20 rounded-lg bg-muted overflow-hidden shrink-0 shadow-sm">
+                        {c.course_cover
+                          ? <img src={c.course_cover} alt={c.course_name ?? ''} className="h-full w-full object-cover" />
+                          : <div className="h-full w-full flex items-center justify-center bg-primary/5">
+                              <FaBookOpen className="h-5 w-5 text-primary/30" />
+                            </div>
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                          {c.course_name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Progress value={pct} className="flex-1 h-1.5" />
+                          <span className="text-xs text-muted-foreground tabular-nums shrink-0 w-8 text-right">{pct.toFixed(0)}%</span>
+                        </div>
+                        <div className="mt-1.5">
+                          <Badge
+                            className={`text-xs border ${isDone ? 'bg-brand-green/10 text-brand-green border-brand-green/20' : 'bg-primary/8 text-primary border-primary/15'}`}
+                          >
+                            {STATE_LABELS[c.state ?? 'active'] ?? c.state}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Button asChild size="sm" variant="outline" className="shrink-0 h-8 w-8 p-0 rounded-full border-primary/20 hover:bg-primary hover:text-white hover:border-primary transition-colors">
+                        <Link href={`/dashboard/comprador/cursos/${c.course_slug}`}>
+                          <FaPlay className="h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
+                  )
+                })
+              )}
             </CardContent>
           </Card>
         </div>
 
-        <div className="flex flex-col gap-4">
+        {/* Right column */}
+        <div className="flex flex-col gap-5">
+
+          {/* Orders */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base">Últimas órdenes</CardTitle>
-              <Button asChild variant="ghost" size="sm" className="text-xs">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+              <div>
+                <CardTitle className="text-base font-semibold">Últimas órdenes</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Historial de compras</p>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="text-xs text-primary hover:text-primary">
                 <Link href="/dashboard/comprador/ordenes">Ver todas</Link>
               </Button>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="p-4 flex flex-col gap-2">
               {orders.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Sin órdenes aún</p>
+                <div className="flex flex-col items-center py-6 text-center gap-1">
+                  <FaShoppingBag className="h-8 w-8 text-muted-foreground/20 mb-1" />
+                  <p className="text-sm text-muted-foreground">Sin órdenes aún</p>
+                </div>
               ) : orders.map(o => (
-                <div key={o.id} className="flex items-center justify-between text-sm">
-                  <div>
-                    <p className="font-mono text-xs text-muted-foreground">{o.name}</p>
-                    <p className="font-semibold">{formatCurrency(Number(o.amount_total), o.currency ?? 'USD')}</p>
+                <div key={o.id} className="flex items-center gap-3 rounded-lg p-2.5 hover:bg-muted/50 transition-colors">
+                  <div className="h-8 w-8 rounded-full bg-primary/8 flex items-center justify-center shrink-0">
+                    <FaShoppingBag className="h-3.5 w-3.5 text-primary" />
                   </div>
-                  <Badge variant={o.state === 'paid' ? 'default' : 'secondary'} className="text-xs">{o.state}</Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-mono text-xs text-muted-foreground truncate">{o.name}</p>
+                    <p className="font-bold text-sm text-foreground">{formatCurrency(Number(o.amount_total), o.currency ?? 'USD')}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${ORDER_STATE_COLORS[o.state ?? ''] ?? 'bg-muted text-muted-foreground border-border'}`}>
+                    {o.state}
+                  </span>
                 </div>
               ))}
             </CardContent>
           </Card>
 
+          {/* Quick actions */}
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base">Acciones rápidas</CardTitle></CardHeader>
-            <CardContent className="flex flex-col gap-1">
-              {[
-                { label: 'Explorar cursos', href: '/cursos', icon: FaFire },
-                { label: 'Mis certificados', href: '/dashboard/comprador/certificados', icon: FaCertificate },
-                { label: 'Favoritos', href: '/dashboard/comprador/favoritos', icon: FaHeart },
-                { label: 'Mis compras', href: '/dashboard/comprador/ordenes', icon: FaShoppingBag },
-              ].map(a => (
-                <Button key={a.href} asChild variant="ghost" size="sm" className="justify-start gap-2 h-9">
-                  <Link href={a.href}><a.icon className="h-4 w-4" />{a.label}</Link>
-                </Button>
+            <CardHeader className="pb-4 border-b">
+              <CardTitle className="text-base font-semibold">Acciones rápidas</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 grid grid-cols-2 gap-2">
+              {QUICK_ACTIONS.map(a => (
+                <Link
+                  key={a.href}
+                  href={a.href}
+                  className={`group flex flex-col items-center gap-2 rounded-xl p-3 text-center transition-all ${a.color}`}
+                >
+                  <a.icon className="h-5 w-5" />
+                  <span className="text-xs font-medium leading-tight">{a.label}</span>
+                </Link>
               ))}
             </CardContent>
           </Card>
