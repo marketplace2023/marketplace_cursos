@@ -24,6 +24,11 @@ export const metadata: Metadata = {
   },
   description: 'Descubre, compara y compra cursos de múltiples academias en un solo lugar. Formación profesional de calidad.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  icons: {
+    icon: '/logo_marca.svg',
+    shortcut: '/logo_marca.svg',
+    apple: '/logo_marca.svg',
+  },
   openGraph: {
     type: 'website',
     locale: 'es_US',
