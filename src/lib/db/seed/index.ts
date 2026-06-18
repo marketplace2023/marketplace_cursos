@@ -1,5 +1,24 @@
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+// Load .env.local manually since tsx doesn't support --env-file reliably
+try {
+  const envPath = resolve(process.cwd(), '.env.local')
+  const lines = readFileSync(envPath, 'utf-8').split('\n')
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const idx = trimmed.indexOf('=')
+    if (idx === -1) continue
+    const key = trimmed.slice(0, idx).trim()
+    const val = trimmed.slice(idx + 1).trim().replace(/^['"]|['"]$/g, '')
+    if (!process.env[key]) process.env[key] = val
+  }
+} catch { /* .env.local not found, rely on existing env */ }
+
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
+import { eq } from 'drizzle-orm'
 import { hashSync } from 'bcryptjs'
 import * as schema from '../schema'
 
@@ -75,13 +94,26 @@ async function seed() {
 
   console.log(`  ✓ ${cats.length} categories`)
 
-  if (users.length === 0 || cats.length === 0) {
-    console.log('  ⚠ Data already exists, skipping store/course creation')
+  // If users/cats already exist, query them instead of skipping
+  let allUsers = users
+  let allCats = cats
+
+  if (users.length === 0) {
+    allUsers = await db.select().from(schema.res_users)
+    console.log(`  ↩ Using ${allUsers.length} existing users`)
+  }
+  if (cats.length === 0) {
+    allCats = await db.select().from(schema.product_category)
+    console.log(`  ↩ Using ${allCats.length} existing categories`)
+  }
+
+  if (allUsers.length === 0 || allCats.length === 0) {
+    console.log('  ✗ No users or categories found, aborting')
     return
   }
 
-  const storeOwner = users.find(u => u.user_type === 'store_owner')!
-  const instructor = users.find(u => u.user_type === 'instructor')!
+  const storeOwner = allUsers.find(u => u.user_type === 'store_owner')!
+  const instructor = allUsers.find(u => u.user_type === 'instructor')!
 
   /* ── 4. store ── */
   const stores = await db.insert(schema.marketplace_store).values([
@@ -99,12 +131,18 @@ async function seed() {
 
   console.log(`  ✓ ${stores.length} stores`)
 
+  let allStores = stores
   if (stores.length === 0) {
-    console.log('  ⚠ Skipping course/lesson seeding')
+    allStores = await db.select().from(schema.marketplace_store).where(eq(schema.marketplace_store.slug, 'academia-tech-demo'))
+    console.log(`  ↩ Using ${allStores.length} existing store`)
+  }
+
+  if (allStores.length === 0) {
+    console.log('  ✗ No store found, aborting')
     return
   }
 
-  const store = stores[0]
+  const store = allStores[0]
 
   /* ── 5. course ── */
   const courses = await db.insert(schema.product_template).values([
@@ -121,7 +159,7 @@ async function seed() {
       ]),
       requirements: JSON.stringify(['Conocimientos básicos de HTML', 'Computadora con internet']),
       target_audience: 'Desarrolladores junior y personas que quieren iniciar en programación web',
-      category_id: cats[0].id,
+      category_id: allCats[0].id,
       level: 'beginner',
       language: 'es',
       modality: 'online_async',
@@ -145,24 +183,29 @@ async function seed() {
 
   console.log(`  ✓ ${courses.length} courses`)
 
-  if (courses.length === 0) return
+  let allCourses = courses
+  if (courses.length === 0) {
+    allCourses = await db.select().from(schema.product_template).where(eq(schema.product_template.slug, 'desarrollo-web-full-stack-react-nextjs'))
+    console.log(`  ↩ Using ${allCourses.length} existing course`)
+  }
 
-  const course = courses[0]
+  if (allCourses.length > 0) {
+    const course = allCourses[0]
+    const modules = await db.insert(schema.slide_channel).values([
+      { course_id: course.id, name: 'Módulo 1: Fundamentos', sort_order: 1 },
+    ]).onConflictDoNothing().returning()
 
-  /* ── 6. module + lesson ── */
-  const modules = await db.insert(schema.slide_channel).values([
-    { course_id: course.id, name: 'Módulo 1: Fundamentos', sort_order: 1 },
-  ]).returning()
-
-  await db.insert(schema.slide_slide).values([
-    {
-      channel_id: modules[0].id, course_id: course.id,
-      name: 'Introducción al curso', slide_type: 'video',
-      duration: 300, sort_order: 1, is_preview: true,
-    },
-  ])
-
-  console.log('  ✓ 1 module, 1 lesson')
+    if (modules.length > 0) {
+      await db.insert(schema.slide_slide).values([
+        {
+          channel_id: modules[0].id, course_id: course.id,
+          name: 'Introducción al curso', slide_type: 'video',
+          duration: 300, sort_order: 1, is_preview: true,
+        },
+      ]).onConflictDoNothing()
+      console.log('  ✓ 1 module, 1 lesson')
+    }
+  }
 
   /* ── 7. instructor profile ── */
   await db.insert(schema.marketplace_instructor).values([
