@@ -32,8 +32,7 @@ function VerificarInner() {
     <div className="flex min-h-full flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center justify-center gap-2 font-bold text-2xl text-primary mb-8">
-          <FaGraduationCap className="h-8 w-8 text-brand-green" />
-          EduMarket
+          <img src="/logo_marca.svg" alt="EduMarket" className="h-20 w-auto" />
         </Link>
 
         <Card className="shadow-lg text-center">

@@ -45,8 +45,7 @@ export function Header({ user, cartCount = 0, notifCount = 0 }: HeaderProps) {
 
         {/* Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2 font-bold text-xl text-primary-foreground hover:opacity-90 transition-opacity">
-          <FaGraduationCap className="h-7 w-7 text-brand-green" />
-          <span className="hidden sm:inline">EduMarket</span>
+          <img src="/logo_marca.svg" alt="EduMarket" className="h-14 w-auto" />
         </Link>
 
         {/* Search — desktop */}

@@ -33,10 +33,7 @@ export function DashboardTopbar({ user, title, navItems, notifCount = 0 }: Topba
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0 bg-sidebar border-sidebar-border">
           <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-green">
-              <FaGraduationCap className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-bold text-sidebar-foreground">EduMarket</span>
+            <img src="/logo_marca.svg" alt="EduMarket" className="h-14 w-auto" />
           </div>
           <div className="px-3 py-3 overflow-y-auto h-[calc(100vh-64px)]">
             <SidebarNav items={navItems} />

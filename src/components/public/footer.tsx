@@ -59,8 +59,7 @@ export function Footer() {
           {/* Brand column */}
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl hover:opacity-90 transition-opacity">
-              <FaGraduationCap className="h-7 w-7 text-brand-green" />
-              EduMarket
+              <img src="/logo_marca.svg" alt="EduMarket" className="h-20 w-auto" />
             </Link>
             <p className="mt-4 text-sm text-primary-foreground/70 leading-relaxed">
               El marketplace de cursos y capacitación profesional más completo de América.

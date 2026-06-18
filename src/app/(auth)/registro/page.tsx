@@ -67,15 +67,12 @@ export default function RegistroPage() {
   return (
     <div className="flex min-h-screen">
       {/* ── Brand panel (left) ── */}
-      <div className="hidden lg:flex lg:w-[48%] relative flex-col justify-between bg-linear-to-br from-brand-green via-[#168a4a] to-primary overflow-hidden p-12">
-        <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-20 -left-20 h-64 w-64 rounded-full bg-brand-purple/15 blur-3xl" />
+      <div className="hidden lg:flex lg:w-[48%] relative flex-col justify-between overflow-hidden p-12"
+        style={{ backgroundImage: "url('/banner-register.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="pointer-events-none absolute inset-0 bg-black/45" />
 
         <Link href="/" className="relative flex items-center gap-3 text-white font-bold text-2xl">
-          <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <FaGraduationCap className="h-5 w-5 text-white" />
-          </div>
-          EduMarket
+          <img src="/logo_marca.svg" alt="EduMarket" className="h-24 w-auto" />
         </Link>
 
         <div className="relative">
@@ -117,10 +114,7 @@ export default function RegistroPage() {
       {/* ── Form panel (right) ── */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-background overflow-y-auto">
         <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary mb-8 lg:hidden">
-          <div className="h-9 w-9 rounded-xl bg-brand-green flex items-center justify-center">
-            <FaGraduationCap className="h-4.5 w-4.5 text-white" />
-          </div>
-          EduMarket
+          <img src="/logo_marca.svg" alt="EduMarket" className="h-16 w-auto" />
         </Link>
 
         <div className="w-full max-w-sm">

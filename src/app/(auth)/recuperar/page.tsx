@@ -45,10 +45,7 @@ export default function RecuperarPage() {
         <div className="pointer-events-none absolute bottom-10 -left-20 h-64 w-64 rounded-full bg-brand-orange/10 blur-3xl" />
         <div className="relative text-center max-w-xs">
           <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl text-white mb-12">
-            <div className="h-10 w-10 rounded-xl bg-brand-green flex items-center justify-center">
-              <FaGraduationCap className="h-5 w-5 text-white" />
-            </div>
-            EduMarket
+            <img src="/logo_marca.svg" alt="EduMarket" className="h-24 w-auto" />
           </Link>
           <div className="h-20 w-20 rounded-3xl bg-white/10 flex items-center justify-center mx-auto mb-6">
             <FaKey className="h-9 w-9 text-white" />
@@ -63,10 +60,7 @@ export default function RecuperarPage() {
       {/* ── Form panel ── */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-background">
         <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary mb-8 lg:hidden">
-          <div className="h-9 w-9 rounded-xl bg-brand-green flex items-center justify-center">
-            <FaGraduationCap className="h-4.5 w-4.5 text-white" />
-          </div>
-          EduMarket
+          <img src="/logo_marca.svg" alt="EduMarket" className="h-16 w-auto" />
         </Link>
 
         <div className="w-full max-w-sm">

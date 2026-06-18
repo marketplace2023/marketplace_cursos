@@ -32,13 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           href="/"
           className="flex h-16 items-center gap-3 px-5 border-b border-sidebar-border hover:opacity-90 transition-opacity"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-green shadow-lg shadow-brand-green/30">
-            <FaGraduationCap className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <p className="font-bold text-base text-sidebar-foreground leading-none">EduMarket</p>
-            <p className="text-xs text-sidebar-foreground/40 mt-0.5">Plataforma educativa</p>
-          </div>
+          <img src="/logo_marca.svg" alt="EduMarket" className="h-16 w-auto" />
         </Link>
 
         {/* Nav */}

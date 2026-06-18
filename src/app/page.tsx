@@ -11,6 +11,7 @@ import { Header } from '@/components/public/header'
 import { Footer } from '@/components/public/footer'
 import { getSession } from '@/lib/auth/session'
 import { HomeCourseCarousel, HomeStoreCarousel } from '@/components/public/home-carousels'
+import { HeroBanner } from '@/components/public/banner-carousel'
 import { NumberTicker } from '@/components/ui/number-ticker'
 import { db } from '@/lib/db'
 import { product_template, marketplace_store, res_users, product_category } from '@/lib/db/schema'
@@ -172,12 +173,8 @@ export default async function HomePage() {
       <main className="flex-1">
 
         {/* ─── Hero ─── */}
-        <section className="relative overflow-hidden bg-linear-to-br from-primary via-[#0d3a6e] to-brand-secondary py-24 lg:py-32">
-          {/* decorative blobs */}
-          <div className="pointer-events-none absolute -top-40 -right-40 h-125 w-125 rounded-full bg-brand-green/8 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-32 -left-32 h-100 w-100 rounded-full bg-brand-purple/10 blur-3xl" />
-          <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-64 w-64 rounded-full bg-white/3 blur-2xl" />
-
+        <HeroBanner>
+          <div className="py-24 lg:py-32">
           <div className="relative mx-auto max-w-7xl px-4 text-center lg:px-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-brand-green/30 bg-brand-green/10 px-4 py-1.5 text-sm text-brand-green font-medium mb-6 backdrop-blur-sm">
               <FaStar className="h-3.5 w-3.5" />
@@ -236,7 +233,8 @@ export default async function HomePage() {
               </Button>
             </div>
           </div>
-        </section>
+          </div>
+        </HeroBanner>
 
         {/* ─── Stats bar ─── */}
         <section className="bg-primary border-b border-white/10">

@@ -16,6 +16,53 @@ const EXT: Record<string, string> = {
   'video/quicktime': 'mov', 'video/mov': 'mov',
 }
 
+async function uploadToCloudinary(buffer: ArrayBuffer, mime: string, isVideo: boolean): Promise<string> {
+  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    throw new Error('CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET no están configurados')
+  }
+
+  const resourceType = isVideo ? 'video' : 'image'
+  const folder = isVideo ? 'edumarket/videos' : 'edumarket/images'
+
+  const timestamp = Math.floor(Date.now() / 1000)
+
+  // Signature must exclude: file, api_key, cloud_name, resource_type
+  const signStr = `folder=${folder}&timestamp=${timestamp}${CLOUDINARY_API_SECRET}`
+  const encoder = new TextEncoder()
+  const hashBuffer = await crypto.subtle.digest('SHA-1', encoder.encode(signStr))
+  const signature = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+
+  const formData = new FormData()
+  const blob = new Blob([buffer], { type: mime })
+  formData.append('file', blob)
+  formData.append('folder', folder)
+  formData.append('timestamp', String(timestamp))
+  formData.append('api_key', CLOUDINARY_API_KEY)
+  formData.append('signature', signature)
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+    { method: 'POST', body: formData }
+  )
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Cloudinary error: ${err}`)
+  }
+  const result = await res.json() as { secure_url: string }
+  return result.secure_url
+}
+
+async function uploadToLocalFs(buffer: ArrayBuffer, mime: string, isImage: boolean): Promise<string> {
+  const folder = isImage ? 'images' : 'videos'
+  const ext = EXT[mime] ?? 'bin'
+  const filename = `${randomUUID()}.${ext}`
+  const dir = join(process.cwd(), 'public', 'uploads', folder)
+  await mkdir(dir, { recursive: true })
+  await writeFile(join(dir, filename), Buffer.from(buffer))
+  return `/uploads/${folder}/${filename}`
+}
+
 export async function POST(req: Request) {
   try {
     const session = await getSession()
@@ -35,20 +82,31 @@ export async function POST(req: Request) {
       return badRequest(`El archivo supera el límite de ${isImage ? MAX_IMAGE_MB : MAX_VIDEO_MB} MB`)
     }
 
-    const folder = isImage ? 'images' : 'videos'
-    const ext = EXT[mime] ?? 'bin'
-    const filename = `${randomUUID()}.${ext}`
-    const dir = join(process.cwd(), 'public', 'uploads', folder)
-
-    await mkdir(dir, { recursive: true })
-
     const bytes = await file.arrayBuffer()
-    await writeFile(join(dir, filename), Buffer.from(bytes))
 
-    const url = `/uploads/${folder}/${filename}`
-    return created({ url, filename, size: file.size, type: mime })
+    const isProduction = process.env.NODE_ENV === 'production'
+    const hasCloudinary = !!(
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+    )
+
+    let url: string
+    if (isProduction && !hasCloudinary) {
+      return badRequest('Subida de archivos no configurada. Configura CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET.')
+    }
+
+    if (isProduction && hasCloudinary) {
+      url = await uploadToCloudinary(bytes, mime, isVideo)
+    } else {
+      // En desarrollo siempre usa el filesystem local (más rápido y sin dependencias externas)
+      url = await uploadToLocalFs(bytes, mime, isImage)
+    }
+
+    return created({ url, filename: file.name, size: file.size, type: mime })
   } catch (e) {
     console.error('[upload]', e)
+    if (e instanceof Error) return badRequest(e.message)
     return serverError()
   }
 }

@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { res_users, marketplace_instructor } from '@/lib/db/schema'
-import { eq, and, ilike, desc, asc, sql } from 'drizzle-orm'
+import { eq, and, ilike, desc, asc, sql, gte } from 'drizzle-orm'
 import { ok, serverError, pageMeta } from '@/lib/api/response'
 
 export async function GET(req: Request) {
@@ -12,8 +12,17 @@ export async function GET(req: Request) {
     const limit = Math.min(50, Math.max(1, Number(searchParams.get('limit') ?? '20')))
     const offset = (page - 1) * limit
 
+    const rating_min = searchParams.get('rating_min')
+    const country = searchParams.get('country')
+    const language = searchParams.get('language')
+    const verified = searchParams.get('verified')
+
     const conditions = [eq(res_users.user_type, 'instructor'), eq(res_users.state, 'active')]
     if (q) conditions.push(ilike(res_users.name, `%${q}%`))
+    if (country) conditions.push(eq(res_users.country, country))
+    if (language) conditions.push(eq(res_users.language, language))
+    if (verified === '1') conditions.push(eq(res_users.email_verified, true))
+    if (rating_min) conditions.push(gte(marketplace_instructor.rating_avg, rating_min))
 
     const where = and(...conditions)
 
@@ -22,6 +31,7 @@ export async function GET(req: Request) {
       case 'rating': orderBy = desc(marketplace_instructor.rating_avg); break
       case 'students': orderBy = desc(marketplace_instructor.total_students); break
       case 'courses': orderBy = desc(marketplace_instructor.total_courses); break
+      case 'name_asc': orderBy = asc(res_users.name); break
       default: orderBy = desc(marketplace_instructor.total_students)
     }
 
@@ -41,6 +51,8 @@ export async function GET(req: Request) {
         avatar_url: res_users.avatar_url,
         bio: res_users.bio,
         country: res_users.country,
+        language: res_users.language,
+        email_verified: res_users.email_verified,
         headline: marketplace_instructor.headline,
         expertise: marketplace_instructor.expertise,
         rating_avg: marketplace_instructor.rating_avg,

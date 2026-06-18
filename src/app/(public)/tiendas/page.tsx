@@ -1,328 +1,528 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import {
-  FaSearch, FaStar, FaFilter, FaTimes, FaCheckCircle,
+  FaSearch, FaStar, FaTimes, FaCheckCircle,
   FaStore, FaUsers, FaBookOpen, FaGlobe,
+  FaMapMarkerAlt, FaMap, FaList, FaChevronDown, FaSlidersH,
 } from 'react-icons/fa'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
+import type { StoreCoord } from '@/components/map/stores-map'
 
-const STORE_TYPES = [
-  { value: 'academy', label: 'Academia' },
-  { value: 'individual', label: 'Instructor independiente' },
-  { value: 'corporate', label: 'Corporativa' },
-  { value: 'government', label: 'Gobierno / institución' },
-]
-
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Más recientes' },
-  { value: 'rating', label: 'Mejor valoradas' },
-  { value: 'students', label: 'Más estudiantes' },
-  { value: 'courses', label: 'Más cursos' },
-  { value: 'name_asc', label: 'Nombre A-Z' },
-]
-
-type Store = {
-  id: number
-  name: string
-  slug: string
-  store_type: string
-  description?: string
-  logo_url?: string
-  country?: string
-  city?: string
-  modality?: string
-  total_courses: number
-  total_students: number
-  rating_avg: string
-  rating_count: number
-  is_verified: boolean
-  owner_name?: string
-}
-
-type Meta = { total: number; page: number; limit: number; total_pages: number }
-
-function StoreCard({ store }: { store: Store }) {
-  const rating = Number(store.rating_avg ?? 0)
-  const typeLabel = STORE_TYPES.find(t => t.value === store.store_type)?.label ?? store.store_type
-
-  return (
-    <Link href={`/tiendas/${store.slug}`} className="group block h-full">
-      <div className="h-full rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 overflow-hidden flex flex-col">
-        <div className="h-1.5 w-full bg-linear-to-r from-brand-green to-brand-secondary" />
-        <div className="p-5 flex flex-col gap-3 flex-1">
-          {/* Logo + verified */}
-          <div className="flex items-start gap-3">
-            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-border/30 shadow-sm">
-              {store.logo_url ? (
-                <img src={store.logo_url} alt={store.name} className="h-14 w-14 object-cover" />
-              ) : (
-                <FaStore className="h-6 w-6 text-muted-foreground/50" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-bold truncate group-hover:text-primary transition-colors">
-                  {store.name}
-                </h3>
-                {store.is_verified && (
-                  <FaCheckCircle className="h-3.5 w-3.5 shrink-0 text-brand-green" />
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{typeLabel}</p>
-              {(store.city || store.country) && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <FaGlobe className="h-3 w-3" />
-                  {[store.city, store.country].filter(Boolean).join(', ')}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
-          {store.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">{store.description}</p>
-          )}
-
-          {/* Rating */}
-          <div className="flex items-center gap-1 text-xs">
-            <span className="font-bold text-brand-orange">{rating.toFixed(1)}</span>
-            <div className="flex">
-              {Array.from({ length: 5 }, (_, i) => (
-                <FaStar key={i} className={`h-3 w-3 ${i < Math.round(rating) ? 'text-brand-orange' : 'text-muted-foreground/30'}`} />
-              ))}
-            </div>
-            <span className="text-muted-foreground">({store.rating_count.toLocaleString()})</span>
-          </div>
-
-          {/* Stats */}
-          <div className="flex gap-4 text-xs text-muted-foreground border-t border-border/50 pt-3 mt-auto">
-            <span className="flex items-center gap-1">
-              <FaBookOpen className="h-3 w-3 text-primary" />
-              {store.total_courses} cursos
-            </span>
-            <span className="flex items-center gap-1">
-              <FaUsers className="h-3 w-3 text-brand-green" />
-              {store.total_students.toLocaleString()} estudiantes
-            </span>
-            {store.is_verified && (
-              <span className="ml-auto text-brand-green font-semibold flex items-center gap-1">
-                <FaCheckCircle className="h-3 w-3" /> Verificada
-              </span>
-            )}
-          </div>
-        </div>
+const StoresMap = dynamic(() => import('@/components/map/stores-map'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full flex items-center justify-center bg-[#f4f4f0]">
+      <div className="flex flex-col items-center gap-3 text-muted-foreground/40">
+        <FaMapMarkerAlt className="h-8 w-8 animate-pulse" />
+        <span className="text-xs tracking-widest uppercase">Cargando mapa…</span>
       </div>
-    </Link>
-  )
+    </div>
+  ),
+})
+
+/* ── Types ── */
+type StoreRow = StoreCoord & {
+  logo_url?: string; total_students: number
+  lat: number | null; lng: number | null
+}
+type Meta = { total: number; page: number; limit: number; total_pages: number }
+type Filters = {
+  type: string; verified: string; modality: string; rating_min: string
 }
 
-function StoreSkeleton() {
-  return (
-    <Card>
-      <CardContent className="p-5 flex flex-col gap-3">
-        <div className="flex gap-3">
-          <Skeleton className="h-14 w-14 rounded-xl shrink-0" />
-          <div className="flex-1 flex flex-col gap-1.5">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-        </div>
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-3/4" />
-        <Skeleton className="h-3 w-24" />
-      </CardContent>
-    </Card>
-  )
-}
+/* ── Filter options (Yelp-style named categories) ── */
+const TYPE_OPTS = [
+  { value: '', label: 'Tipo' },
+  { value: 'academy',    label: 'Academia' },
+  { value: 'individual', label: 'Instructor independiente' },
+  { value: 'corporate',  label: 'Corporativa' },
+  { value: 'government', label: 'Institución' },
+]
 
-function FilterPanel({ filters, onChange }: { filters: Record<string, string>; onChange: (k: string, v: string) => void }) {
+const RATING_OPTS = [
+  { value: '',    label: 'Valoración' },
+  { value: '4.5', label: '4.5★ y más' },
+  { value: '4.0', label: '4.0★ y más' },
+  { value: '3.5', label: '3.5★ y más' },
+  { value: '3.0', label: '3.0★ y más' },
+]
+
+const MODALITY_OPTS = [
+  { value: '',           label: 'Modalidad' },
+  { value: 'online',     label: 'En línea' },
+  { value: 'presential', label: 'Presencial' },
+  { value: 'hybrid',     label: 'Híbrida' },
+]
+
+const SORT_OPTS = [
+  { value: 'newest',   label: 'Más recientes' },
+  { value: 'rating',   label: 'Mejor valoradas' },
+  { value: 'students', label: 'Más estudiantes' },
+  { value: 'courses',  label: 'Más cursos' },
+  { value: 'name_asc', label: 'A–Z' },
+]
+
+/* ── Yelp-style dropdown filter button ── */
+function FilterDropdown({
+  label, value, options, onChange,
+}: {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const isActive = !!value
+  const displayLabel = isActive ? options.find(o => o.value === value)?.label ?? label : label
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [open])
+
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h4 className="font-semibold mb-3 text-sm">Tipo de academia</h4>
-        <div className="flex flex-col gap-2">
-          {STORE_TYPES.map(t => (
-            <div key={t.value} className="flex items-center gap-2">
-              <Checkbox
-                id={`type-${t.value}`}
-                checked={filters.type === t.value}
-                onCheckedChange={c => onChange('type', c ? t.value : '')}
-              />
-              <Label htmlFor={`type-${t.value}`} className="text-sm cursor-pointer">{t.label}</Label>
-            </div>
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={`
+          inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-medium
+          border transition-all duration-150 whitespace-nowrap
+          ${isActive
+            ? 'bg-primary text-white border-primary shadow-sm'
+            : 'bg-background text-foreground border-border hover:border-primary/50 hover:bg-muted/40'
+          }
+        `}
+      >
+        {displayLabel}
+        {isActive
+          ? <FaTimes className="h-3 w-3 ml-0.5 opacity-80" onClick={e => { e.stopPropagation(); onChange(''); setOpen(false) }} />
+          : <FaChevronDown className={`h-2.5 w-2.5 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+        }
+      </button>
+
+      {open && (
+        <div className="absolute top-full mt-1.5 left-0 z-50 bg-popover border border-border rounded-2xl shadow-xl overflow-hidden min-w-50">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={`
+                w-full text-left px-4 py-2.5 text-sm transition-colors
+                ${value === opt.value
+                  ? 'font-semibold text-primary bg-primary/5'
+                  : opt.value === ''
+                    ? 'text-muted-foreground hover:bg-muted/50'
+                    : 'text-foreground hover:bg-muted/50'
+                }
+              `}
+            >
+              {opt.value === '' && value !== '' ? `Todos (limpiar)` : opt.label}
+            </button>
           ))}
         </div>
-      </div>
-      <Separator />
-      <div>
-        <h4 className="font-semibold mb-3 text-sm">Verificación</h4>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="verified"
-            checked={filters.verified === '1'}
-            onCheckedChange={c => onChange('verified', c ? '1' : '')}
-          />
-          <Label htmlFor="verified" className="text-sm cursor-pointer">Solo verificadas</Label>
+      )}
+    </div>
+  )
+}
+
+/* ── Store row — open editorial layout ── */
+function StoreRow({
+  store, index, isActive, isHovered, hasCoords,
+  onHover, onClick, rowRef,
+}: {
+  store: StoreRow; index: number
+  isActive: boolean; isHovered: boolean; hasCoords: boolean
+  onHover: (id: number | null) => void
+  onClick: (id: number) => void
+  rowRef: (el: HTMLDivElement | null) => void
+}) {
+  const rating = Number(store.rating_avg ?? 0)
+  const typeLabel = TYPE_OPTS.find(t => t.value === store.store_type)?.label ?? store.store_type
+  const location = [store.city, store.country].filter(Boolean).join(', ')
+  const num = String(index).padStart(2, '0')
+
+  return (
+    <div
+      ref={rowRef}
+      onClick={() => hasCoords && onClick(store.id)}
+      onMouseEnter={() => hasCoords && onHover(store.id)}
+      onMouseLeave={() => onHover(null)}
+      className={`
+        group relative flex items-start gap-4 px-4 py-4
+        border-b border-border/20 last:border-0
+        transition-all duration-150 ease-out
+        ${hasCoords ? 'cursor-pointer' : ''}
+        ${isActive
+          ? 'bg-primary/[.038] border-l-[3px] border-l-primary pl-3.25'
+          : 'bg-transparent hover:bg-muted/35'
+        }
+      `}
+    >
+      {/* Index */}
+      <div className={`
+        shrink-0 w-7 h-7 rounded-full flex items-center justify-center
+        text-[11px] font-bold transition-all duration-150
+        ${isActive ? 'bg-brand-orange text-white shadow-sm scale-110'
+          : isHovered ? 'bg-primary text-white'
+          : 'bg-muted/70 text-muted-foreground'}
+      `}>{num}</div>
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0 pt-0.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <Link
+            href={`/tiendas/${store.slug}`}
+            onClick={e => e.stopPropagation()}
+            className={`font-semibold text-[15px] leading-snug truncate transition-colors
+              ${isActive ? 'text-primary' : 'text-foreground group-hover:text-primary'}`}
+          >
+            {store.name}
+          </Link>
+          {store.is_verified && <FaCheckCircle className="h-3.5 w-3.5 text-brand-green shrink-0" />}
         </div>
+
+        <p className="text-[11px] tracking-wide uppercase text-muted-foreground/60 font-medium mb-2">
+          {typeLabel}{location && <> &middot; {location}</>}
+        </p>
+
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+          <span className="flex items-center gap-1">
+            <span className="text-brand-orange font-semibold text-xs">{rating.toFixed(1)}</span>
+            <FaStar className="h-2.5 w-2.5 text-brand-orange/80" />
+            <span className="opacity-60">({store.rating_count})</span>
+          </span>
+          <span className="flex items-center gap-1 opacity-70">
+            <FaBookOpen className="h-2.5 w-2.5" />{store.total_courses} cursos
+          </span>
+          <span className="flex items-center gap-1 opacity-70">
+            <FaUsers className="h-2.5 w-2.5" />{store.total_students.toLocaleString()} est.
+          </span>
+        </div>
+      </div>
+
+      {/* Logo */}
+      <div className={`
+        shrink-0 h-11 w-11 rounded-xl overflow-hidden border bg-muted
+        flex items-center justify-center transition-all duration-150
+        ${isActive ? 'border-primary/30 shadow-sm' : 'border-border/40 group-hover:border-border/70'}
+      `}>
+        {store.logo_url
+          ? <img src={store.logo_url} alt={store.name} className="h-11 w-11 object-cover" />
+          : <FaStore className="h-4 w-4 text-muted-foreground/25" />}
       </div>
     </div>
   )
 }
 
+/* ── Skeleton ── */
+function SkeletonRow() {
+  return (
+    <div className="flex items-start gap-4 px-4 py-4 border-b border-border/20">
+      <Skeleton className="w-7 h-7 rounded-full shrink-0 mt-0.5" />
+      <div className="flex-1 flex flex-col gap-2 pt-0.5">
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="h-2.5 w-28" />
+        <Skeleton className="h-2.5 w-36" />
+      </div>
+      <Skeleton className="w-11 h-11 rounded-xl shrink-0" />
+    </div>
+  )
+}
+
+/* ── Page ── */
 export default function TiendasPage() {
-  const [stores, setStores] = useState<Store[]>([])
+  const [stores, setStores] = useState<StoreRow[]>([])
   const [meta, setMeta] = useState<Meta | null>(null)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('newest')
   const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<Record<string, string>>({ type: '', verified: '' })
+  const [filters, setFilters] = useState<Filters>({ type: '', verified: '', modality: '', rating_min: '' })
+  const [activeId, setActiveId] = useState<number | null>(null)
+  const [hoveredId, setHoveredId] = useState<number | null>(null)
+  const [mobileView, setMobileView] = useState<'list' | 'map'>('list')
+
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const storesOnMap = stores.filter(s => s.lat != null && s.lng != null) as (StoreRow & { lat: number; lng: number })[]
+  const fitKey = storesOnMap.map(s => s.id).join(',')
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length + (query ? 1 : 0)
 
   const fetchStores = useCallback(async () => {
     setLoading(true)
-    const params = new URLSearchParams({ sort, page: String(page) })
-    if (query) params.set('q', query)
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v) })
+    const p = new URLSearchParams({ sort, page: String(page) })
+    if (query) p.set('q', query)
+    if (filters.type) p.set('type', filters.type)
+    if (filters.verified) p.set('verified', filters.verified)
+    if (filters.modality) p.set('modality', filters.modality)
+    if (filters.rating_min) p.set('rating_min', filters.rating_min)
     try {
-      const res = await fetch(`/api/v1/stores?${params}`)
-      const data = await res.json()
-      if (data.success) { setStores(data.data); setMeta(data.meta as Meta) }
+      const res = await fetch(`/api/v1/stores?${p}`)
+      const d = await res.json()
+      if (d.success) { setStores(d.data); setMeta(d.meta as Meta) }
     } finally { setLoading(false) }
   }, [query, sort, filters, page])
 
   useEffect(() => { fetchStores() }, [fetchStores])
 
-  function handleFilterChange(k: string, v: string) { setFilters(f => ({ ...f, [k]: v })); setPage(1) }
+  function setFilter(k: keyof Filters, v: string) {
+    setFilters(f => ({ ...f, [k]: v })); setPage(1); setActiveId(null)
+  }
+  function clearAll() {
+    setFilters({ type: '', verified: '', modality: '', rating_min: '' }); setQuery(''); setPage(1); setActiveId(null)
+  }
 
-  const activeCount = Object.values(filters).filter(Boolean).length
+  function onMarkerClick(id: number) {
+    setActiveId(prev => prev === id ? null : id)
+    cardRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    if (mobileView === 'map') setMobileView('list')
+  }
+
+  /* Active filter pills (shown below filter bar) */
+  const activeChips: { label: string; clear: () => void }[] = []
+  if (filters.type) activeChips.push({ label: TYPE_OPTS.find(o => o.value === filters.type)?.label ?? '', clear: () => setFilter('type', '') })
+  if (filters.rating_min) activeChips.push({ label: `${filters.rating_min}★ y más`, clear: () => setFilter('rating_min', '') })
+  if (filters.modality) activeChips.push({ label: MODALITY_OPTS.find(o => o.value === filters.modality)?.label ?? '', clear: () => setFilter('modality', '') })
+  if (filters.verified) activeChips.push({ label: 'Verificadas', clear: () => setFilter('verified', '') })
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-linear-to-br from-brand-green via-[#168a4a] to-primary text-white py-16">
-        <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 -left-16 h-48 w-48 rounded-full bg-brand-orange/10 blur-3xl" />
-        <div className="relative container mx-auto px-4">
-          <div className="flex items-center gap-5">
-            <div className="h-16 w-16 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20">
-              <FaStore className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold font-heading">Academias y Tiendas</h1>
-              <p className="text-white/75 mt-1.5">Descubre academias verificadas con cursos de alta calidad</p>
-              {meta && (
-                <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium mt-2">
-                  <FaStore className="h-3 w-3 text-brand-orange" />
-                  {meta.total.toLocaleString()} academias disponibles
-                </span>
-              )}
+    <div className="flex flex-col bg-background" style={{ height: 'calc(100vh - 64px)' }}>
+      <div className="h-0.5 w-full bg-linear-to-r from-brand-green via-primary to-brand-secondary shrink-0" />
+
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ══════ LEFT PANEL ══════ */}
+        <div className={`
+          flex flex-col overflow-hidden border-r border-border/30
+          w-full lg:w-[42%] lg:flex-none
+          ${mobileView === 'map' ? 'hidden lg:flex' : 'flex'}
+        `}>
+
+          {/* ── Search bar ── */}
+          <div className="shrink-0 px-4 pt-4 pb-3 border-b border-border/20 bg-background">
+            <div className="flex items-center gap-2 mb-1">
+              <form
+                onSubmit={e => { e.preventDefault(); setPage(1); fetchStores() }}
+                className="relative flex-1"
+              >
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 pointer-events-none" />
+                <Input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Busca academias, instructores…"
+                  className="pl-9 h-10 text-[13px] rounded-full bg-muted/50 border-transparent focus:border-primary/30 focus:bg-background transition-all"
+                />
+                {query && (
+                  <button type="button" onClick={() => { setQuery(''); setPage(1) }}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground">
+                    <FaTimes className="h-3 w-3" />
+                  </button>
+                )}
+              </form>
+              {/* Mobile map toggle */}
+              <button
+                className="lg:hidden shrink-0 flex items-center gap-1.5 h-10 px-3.5 rounded-full border border-border text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+                onClick={() => setMobileView(v => v === 'list' ? 'map' : 'list')}
+              >
+                {mobileView === 'list' ? <FaMap className="h-3.5 w-3.5" /> : <FaList className="h-3.5 w-3.5" />}
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+          {/* ── Yelp-style filter bar ── */}
+          <div className="shrink-0 border-b border-border/25 bg-background">
+            {/* Filter pill row — horizontally scrollable */}
+            <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto scrollbar-none">
+              {/* Sort (always first, like Yelp's "Best Match") */}
+              <FilterDropdown
+                label="Ordenar"
+                value={sort !== 'newest' ? sort : ''}
+                options={[
+                  { value: '', label: 'Ordenar' },
+                  ...SORT_OPTS.map(o => ({ value: o.value, label: o.label })),
+                ]}
+                onChange={v => { setSort(v || 'newest'); setPage(1) }}
+              />
 
-      {/* Search + sort */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <form onSubmit={e => { e.preventDefault(); fetchStores() }} className="relative flex-1">
-          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar academia o instructor…" className="pl-9" />
-        </form>
-        <div className="flex items-center gap-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="gap-2 lg:hidden">
-                <FaFilter className="h-4 w-4" />
-                Filtros
-                {activeCount > 0 && <Badge className="h-5 w-5 p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground">{activeCount}</Badge>}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72">
-              <SheetHeader><SheetTitle>Filtros</SheetTitle></SheetHeader>
-              <div className="mt-6"><FilterPanel filters={filters} onChange={handleFilterChange} /></div>
-            </SheetContent>
-          </Sheet>
-          <Select value={sort} onValueChange={v => { setSort(v); setPage(1) }}>
-            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+              <div className="w-px h-5 bg-border/50 shrink-0" />
 
-      {/* Active filter chips */}
-      {activeCount > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {filters.type && (
-            <Badge variant="secondary" className="gap-1 pr-1">
-              {STORE_TYPES.find(t => t.value === filters.type)?.label}
-              <button onClick={() => handleFilterChange('type', '')} className="ml-1 hover:text-destructive"><FaTimes className="h-3 w-3" /></button>
-            </Badge>
-          )}
-          {filters.verified && (
-            <Badge variant="secondary" className="gap-1 pr-1">
-              Solo verificadas
-              <button onClick={() => handleFilterChange('verified', '')} className="ml-1 hover:text-destructive"><FaTimes className="h-3 w-3" /></button>
-            </Badge>
-          )}
-          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setFilters({ type: '', verified: '' }); setPage(1) }}>
-            Limpiar todo
-          </Button>
-        </div>
-      )}
+              <FilterDropdown
+                label="Tipo"
+                value={filters.type}
+                options={TYPE_OPTS}
+                onChange={v => setFilter('type', v)}
+              />
+              <FilterDropdown
+                label="Valoración"
+                value={filters.rating_min}
+                options={RATING_OPTS}
+                onChange={v => setFilter('rating_min', v)}
+              />
+              <FilterDropdown
+                label="Modalidad"
+                value={filters.modality}
+                options={MODALITY_OPTS}
+                onChange={v => setFilter('modality', v)}
+              />
 
-      <div className="flex gap-8">
-        {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-56 shrink-0">
-          <div className="sticky top-24">
-            <h3 className="font-semibold mb-4">Filtros</h3>
-            <FilterPanel filters={filters} onChange={handleFilterChange} />
-          </div>
-        </aside>
-
-        {/* Grid */}
-        <div className="flex-1 min-w-0">
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => <StoreSkeleton key={i} />)}
+              {/* Verified — simple toggle pill */}
+              <button
+                onClick={() => setFilter('verified', filters.verified ? '' : '1')}
+                className={`
+                  inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-medium
+                  border transition-all duration-150 whitespace-nowrap shrink-0
+                  ${filters.verified
+                    ? 'bg-brand-green text-white border-brand-green shadow-sm'
+                    : 'bg-background text-foreground border-border hover:border-brand-green/50 hover:bg-muted/40'
+                  }
+                `}
+              >
+                <FaCheckCircle className="h-3 w-3" />
+                Verificadas
+                {filters.verified && <FaTimes className="h-3 w-3 ml-0.5 opacity-80" onClick={e => { e.stopPropagation(); setFilter('verified', '') }} />}
+              </button>
             </div>
-          ) : stores.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <FaStore className="h-16 w-16 text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No se encontraron academias</h3>
-              <p className="text-muted-foreground mb-4">Intenta con otros filtros</p>
-              <Button variant="outline" onClick={() => { setQuery(''); setFilters({ type: '', verified: '' }); setPage(1) }}>Limpiar búsqueda</Button>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {stores.map(s => <StoreCard key={s.id} store={s} />)}
+
+            {/* Active filter chips + result count */}
+            {(activeChips.length > 0 || meta) && (
+              <div className="flex items-center gap-2 px-4 pb-2.5 flex-wrap">
+                {/* Result count */}
+                {meta && !loading && (
+                  <span className="text-[12px] text-muted-foreground shrink-0">
+                    <span className="font-semibold text-foreground">{meta.total.toLocaleString()}</span>{' '}
+                    academia{meta.total !== 1 ? 's' : ''}
+                  </span>
+                )}
+
+                {activeChips.length > 0 && meta && (
+                  <div className="w-px h-3.5 bg-border/50 shrink-0" />
+                )}
+
+                {/* Active filter chips */}
+                {activeChips.map(chip => (
+                  <span
+                    key={chip.label}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium bg-primary/8 text-primary border border-primary/20 rounded-full px-2.5 py-0.5"
+                  >
+                    {chip.label}
+                    <button onClick={chip.clear} className="hover:text-primary/60 transition-colors ml-0.5">
+                      <FaTimes className="h-2.5 w-2.5" />
+                    </button>
+                  </span>
+                ))}
+
+                {activeFilterCount > 1 && (
+                  <button
+                    onClick={clearAll}
+                    className="text-[11px] text-muted-foreground hover:text-destructive transition-colors ml-auto"
+                  >
+                    Limpiar todo
+                  </button>
+                )}
               </div>
-              {meta && meta.total_pages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
-                  <Button variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-                  <span className="text-sm text-muted-foreground">Página {meta.page} de {meta.total_pages}</span>
-                  <Button variant="outline" disabled={page >= meta.total_pages} onClick={() => setPage(p => p + 1)}>Siguiente</Button>
+            )}
+          </div>
+
+          {/* ── Store list ── */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div>{Array.from({ length: 7 }).map((_, i) => <SkeletonRow key={i} />)}</div>
+            ) : stores.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center px-8">
+                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                  <FaSlidersH className="h-6 w-6 text-muted-foreground/30" />
                 </div>
-              )}
-            </>
+                <h3 className="font-semibold mb-1">Sin resultados</h3>
+                <p className="text-sm text-muted-foreground mb-4">No hay academias con esos filtros</p>
+                <Button size="sm" variant="outline" className="rounded-full" onClick={clearAll}>
+                  Limpiar filtros
+                </Button>
+              </div>
+            ) : (
+              <>
+                {activeId && (
+                  <div className="px-4 py-2 bg-primary/5 border-b border-primary/10 flex items-center justify-between">
+                    <span className="text-[11px] text-primary font-medium">Tienda marcada en el mapa</span>
+                    <button onClick={() => setActiveId(null)} className="text-[11px] text-primary/60 hover:text-primary flex items-center gap-1">
+                      <FaTimes className="h-2.5 w-2.5" /> Deseleccionar
+                    </button>
+                  </div>
+                )}
+                {stores.map((store, i) => (
+                  <StoreRow
+                    key={store.id}
+                    store={store}
+                    index={i + 1 + (page - 1) * 12}
+                    isActive={activeId === store.id}
+                    isHovered={hoveredId === store.id}
+                    hasCoords={store.lat != null && store.lng != null}
+                    onHover={setHoveredId}
+                    onClick={id => setActiveId(prev => prev === id ? null : id)}
+                    rowRef={el => { cardRefs.current[store.id] = el }}
+                  />
+                ))}
+                {storesOnMap.length > 0 && storesOnMap.length < stores.length && (
+                  <div className="px-4 py-3 text-[11px] text-muted-foreground/50 border-t border-border/15 flex items-center gap-2">
+                    <FaGlobe className="h-2.5 w-2.5 shrink-0" />
+                    {storesOnMap.length} de {stores.length} con ubicación en mapa
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* ── Pagination ── */}
+          {meta && meta.total_pages > 1 && (
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-t border-border/25 bg-background/95">
+              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
+                className="text-[12px] text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                ← Anterior
+              </button>
+              <span className="text-[11px] text-muted-foreground tabular-nums">{meta.page} / {meta.total_pages}</span>
+              <button disabled={page >= meta.total_pages} onClick={() => setPage(p => p + 1)}
+                className="text-[12px] text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                Siguiente →
+              </button>
+            </div>
           )}
         </div>
+
+        {/* ══════ RIGHT PANEL — map ══════ */}
+        <div className={`
+          flex-1 bg-muted/20 p-3
+          ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'}
+          items-stretch
+        `}>
+          <div className="relative flex-1 overflow-hidden rounded-2xl border border-border/35 shadow-md">
+            <StoresMap
+              stores={storesOnMap}
+              activeId={activeId}
+              hoveredId={hoveredId}
+              fitKey={fitKey}
+              onMarkerClick={onMarkerClick}
+            />
+            {!loading && storesOnMap.length === 0 && stores.length > 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-background/90 backdrop-blur-sm rounded-2xl px-6 py-5 shadow-xl text-center max-w-xs border border-border/30">
+                  <FaMapMarkerAlt className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm font-medium mb-1">Sin ubicaciones</p>
+                  <p className="text-xs text-muted-foreground">Las academias encontradas no tienen coordenadas</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
-    </div>
     </div>
   )
 }

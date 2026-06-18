@@ -4,12 +4,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
+      { protocol: 'http',  hostname: 'localhost' },
     ],
-  },
-  experimental: {
-    serverActions: {
-      allowedOrigins: ['localhost:3000'],
-    },
   },
 };
 
