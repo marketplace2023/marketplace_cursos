@@ -111,11 +111,11 @@ export async function generateMetadata({
 }
 
 type Course = {
-  id: number; name: string; slug: string; cover_url?: string
-  list_price: string; sale_price?: string; is_free: boolean; currency: string
-  level: string; duration_hours?: string; rating_avg: string; rating_count: number
-  total_students: number; has_certificate: boolean; is_bestseller: boolean
-  store_name?: string
+  id: number; name: string; slug: string; cover_url?: string | null
+  list_price: string; sale_price?: string | null; is_free: boolean; currency: string | null
+  level: string | null; duration_hours?: string | null; rating_avg: string | null; rating_count: number | null
+  total_students: number | null; has_certificate: boolean | null; is_bestseller: boolean | null
+  store_name?: string | null
 }
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -140,14 +140,14 @@ function CourseCard({ course }: { course: Course }) {
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <h3 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">{course.name}</h3>
         <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-          {course.rating_count > 0 && (
+          {(course.rating_count ?? 0) > 0 && (
             <span className="flex items-center gap-1">
               <FaStar className="h-3 w-3 text-yellow-500" />
-              {Number(course.rating_avg).toFixed(1)} ({course.rating_count.toLocaleString()})
+              {Number(course.rating_avg ?? 0).toFixed(1)} ({(course.rating_count ?? 0).toLocaleString()})
             </span>
           )}
           <span className="flex items-center gap-1">
-            <FaUsers className="h-3 w-3" />{course.total_students.toLocaleString()}
+            <FaUsers className="h-3 w-3" />{(course.total_students ?? 0).toLocaleString()}
           </span>
           {course.duration_hours && (
             <span className="flex items-center gap-1"><FaClock className="h-3 w-3" />{durationLabel(Number(course.duration_hours))}</span>
@@ -157,7 +157,7 @@ function CourseCard({ course }: { course: Course }) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">{LEVEL_LABELS[course.level] ?? course.level}</Badge>
+          <Badge variant="outline" className="text-xs">{LEVEL_LABELS[course.level ?? ''] ?? course.level}</Badge>
           {course.is_bestseller && <Badge className="text-xs bg-brand-orange border-0 text-white">Bestseller</Badge>}
         </div>
       </div>
@@ -166,8 +166,8 @@ function CourseCard({ course }: { course: Course }) {
           <span className="font-bold text-brand-green text-sm">Gratis</span>
         ) : (
           <div>
-            <span className="font-bold text-primary text-sm">{formatCurrency(price, course.currency)}</span>
-            {originalPrice && <p className="text-xs text-muted-foreground line-through">{formatCurrency(originalPrice, course.currency)}</p>}
+            <span className="font-bold text-primary text-sm">{formatCurrency(price, course.currency ?? 'USD')}</span>
+            {originalPrice && <p className="text-xs text-muted-foreground line-through">{formatCurrency(originalPrice, course.currency ?? 'USD')}</p>}
           </div>
         )}
       </div>

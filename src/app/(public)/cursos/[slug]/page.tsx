@@ -413,7 +413,7 @@ export default async function CursoFichaPage({
                   {course.duration_hours ? durationLabel(Number(course.duration_hours)) : ''}
                 </p>
                 <Accordion type="multiple" className="border rounded-xl overflow-hidden divide-y">
-                  {course.modules.map((mod: { id: number; name: string; lessons: { id: number; name: string; slide_type: SlideType; duration: number; is_preview: boolean }[] }) => (
+                  {course.modules.map((mod: { id: number; name: string; lessons: { id: number; name: string; slide_type: string | null; duration: number | null; is_preview: boolean }[] }) => (
                     <AccordionItem key={mod.id} value={String(mod.id)} className="border-0">
                       <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/40 font-medium text-sm">
                         <span className="text-left">{mod.name}</span>
@@ -425,16 +425,16 @@ export default async function CursoFichaPage({
                         <ul className="flex flex-col gap-1">
                           {mod.lessons.map((lesson) => (
                             <li key={lesson.id} className="flex items-center gap-2 py-1.5 text-sm">
-                              {slideIcon(lesson.slide_type)}
+                              {slideIcon((lesson.slide_type as SlideType) ?? 'video')}
                               <span className="flex-1">{lesson.name}</span>
                               {lesson.is_preview && (
                                 <Badge variant="outline" className="text-xs border-brand-green text-brand-green">
                                   Vista previa
                                 </Badge>
                               )}
-                              {lesson.duration > 0 && (
+                              {(lesson.duration ?? 0) > 0 && (
                                 <span className="text-xs text-muted-foreground shrink-0">
-                                  {secondsToLabel(lesson.duration)}
+                                  {secondsToLabel(lesson.duration ?? 0)}
                                 </span>
                               )}
                             </li>
@@ -553,7 +553,7 @@ export default async function CursoFichaPage({
                   </div>
                 </div>
                 <div className="flex flex-col gap-6">
-                  {course.reviews.map((review: { id: number; rating: number; comment?: string; verified_purchase: boolean; created_at: string; reviewer_name?: string; reviewer_avatar?: string }) => (
+                  {course.reviews.map((review: { id: number; rating: number; comment?: string | null; verified_purchase: boolean; created_at: string | Date; reviewer_name?: string | null; reviewer_avatar?: string | null }) => (
                     <div key={review.id} className="flex gap-4">
                       <Avatar className="h-10 w-10 shrink-0">
                         <AvatarImage src={review.reviewer_avatar ?? undefined} />
@@ -598,9 +598,9 @@ export default async function CursoFichaPage({
             <p className="text-lg font-bold text-brand-green">Gratis</p>
           ) : (
             <div className="flex items-center gap-2">
-              <p className="text-lg font-bold text-primary">{formatCurrency(price, course.currency)}</p>
+              <p className="text-lg font-bold text-primary">{formatCurrency(price, course.currency ?? 'USD')}</p>
               {originalPrice && (
-                <p className="text-sm text-muted-foreground line-through">{formatCurrency(originalPrice, course.currency)}</p>
+                <p className="text-sm text-muted-foreground line-through">{formatCurrency(originalPrice, course.currency ?? 'USD')}</p>
               )}
             </div>
           )}
@@ -620,7 +620,7 @@ function PriceCard({
   originalPrice,
   discount,
 }: {
-  course: { name: string; cover_url?: string; is_free: boolean; currency: string; access_type?: string; refund_days?: number; has_certificate?: boolean; store_slug?: string; store_name?: string }
+  course: { name: string; cover_url?: string | null; is_free: boolean; currency: string | null; access_type?: string | null; refund_days?: number | null; has_certificate?: boolean | null; store_slug?: string | null; store_name?: string | null }
   price: number
   originalPrice: number | null
   discount: number
@@ -638,10 +638,10 @@ function PriceCard({
             <p className="text-3xl font-bold text-brand-green">Gratis</p>
           ) : (
             <div className="flex items-center gap-3">
-              <p className="text-3xl font-bold text-primary">{formatCurrency(price, course.currency)}</p>
+              <p className="text-3xl font-bold text-primary">{formatCurrency(price, course.currency ?? 'USD')}</p>
               {originalPrice && (
                 <div className="flex flex-col">
-                  <span className="text-sm text-muted-foreground line-through">{formatCurrency(originalPrice, course.currency)}</span>
+                  <span className="text-sm text-muted-foreground line-through">{formatCurrency(originalPrice, course.currency ?? 'USD')}</span>
                   <Badge className="w-fit bg-destructive text-white border-0 text-xs">-{discount}% OFF</Badge>
                 </div>
               )}

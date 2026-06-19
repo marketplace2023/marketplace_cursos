@@ -124,9 +124,9 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 type Review = {
-  id: number; rating: number; comment?: string
-  verified_purchase: boolean; created_at: string
-  reviewer_name?: string; reviewer_avatar?: string
+  id: number; rating: number; comment?: string | null
+  verified_purchase: boolean; created_at: string | Date
+  reviewer_name?: string | null; reviewer_avatar?: string | null
 }
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://eduumarket.netlify.app'
@@ -139,7 +139,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = store.description ?? `Explora los cursos y formaciones de ${store.name}.`
   return {
     title, description,
-    openGraph: { title, description, url: `${BASE}/tiendas/${slug}`, type: 'website', images: (store.logo_url ?? store.cover_url) ? [{ url: store.logo_url ?? store.cover_url, alt: store.name }] : [] },
+    openGraph: { title, description, url: `${BASE}/tiendas/${slug}`, type: 'website', images: (store.logo_url ?? store.cover_url) ? [{ url: (store.logo_url ?? store.cover_url) as string, alt: store.name }] : [] },
     twitter: { card: 'summary_large_image', title, description, images: store.logo_url ? [store.logo_url] : [] },
     alternates: { canonical: `${BASE}/tiendas/${slug}` },
   }
@@ -158,7 +158,16 @@ export default async function TiendaFichaPage({ params }: { params: Promise<{ sl
     breadcrumbJsonLd([{ name: 'Inicio', url: BASE }, { name: 'Tiendas', url: `${BASE}/tiendas` }, { name: store.name, url: `${BASE}/tiendas/${slug}` }]),
   ]
 
-  const courses: CourseSlide[] = store.courses ?? []
+  const courses: CourseSlide[] = (store.courses ?? []).map((c: typeof store.courses[number]) => ({
+    ...c,
+    level: c.level ?? 'all_levels',
+    currency: c.currency ?? 'USD',
+    rating_avg: c.rating_avg ?? '0',
+    rating_count: c.rating_count ?? 0,
+    total_students: c.total_students ?? 0,
+    has_certificate: c.has_certificate ?? false,
+    is_bestseller: c.is_bestseller ?? false,
+  }))
   const hasSocial = Object.keys(socialLinks).length > 0
 
   return (
