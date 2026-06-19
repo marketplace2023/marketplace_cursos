@@ -280,7 +280,7 @@ export default async function CursoFichaPage({
                   </Badge>
                 )}
                 <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground">
-                  {LEVEL_LABELS[course.level] ?? course.level}
+                  {LEVEL_LABELS[course.level ?? ''] ?? course.level}
                 </Badge>
               </div>
 
