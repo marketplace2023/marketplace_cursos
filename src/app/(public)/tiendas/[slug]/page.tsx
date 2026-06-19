@@ -15,14 +15,106 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StoreCourseCarousel } from '@/components/public/store-course-carousel'
 import type { CourseSlide } from '@/components/public/store-course-carousel'
+import { db } from '@/lib/db'
+import { marketplace_store, res_users, product_template, product_category, marketplace_review } from '@/lib/db/schema'
+import { eq, and, isNull, desc } from 'drizzle-orm'
 
 async function getStore(slug: string) {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-    const res = await fetch(`${base}/api/v1/stores/${slug}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.success ? data.data : null
+    const isNumeric = /^\d+$/.test(slug)
+    const condition = and(
+      isNumeric ? eq(marketplace_store.id, Number(slug)) : eq(marketplace_store.slug, slug),
+      isNull(marketplace_store.deleted_at),
+    )
+
+    const [store] = await db
+      .select({
+        id: marketplace_store.id,
+        name: marketplace_store.name,
+        legal_name: marketplace_store.legal_name,
+        slug: marketplace_store.slug,
+        store_type: marketplace_store.store_type,
+        state: marketplace_store.state,
+        description: marketplace_store.description,
+        logo_url: marketplace_store.logo_url,
+        cover_url: marketplace_store.cover_url,
+        email: marketplace_store.email,
+        phone: marketplace_store.phone,
+        website: marketplace_store.website,
+        country: marketplace_store.country,
+        city: marketplace_store.city,
+        social_links: marketplace_store.social_links,
+        total_courses: marketplace_store.total_courses,
+        total_students: marketplace_store.total_students,
+        rating_avg: marketplace_store.rating_avg,
+        rating_count: marketplace_store.rating_count,
+        is_verified: marketplace_store.is_verified,
+        refund_policy: marketplace_store.refund_policy,
+        support_policy: marketplace_store.support_policy,
+        owner_id: res_users.id,
+        owner_name: res_users.name,
+        owner_avatar: res_users.avatar_url,
+        owner_bio: res_users.bio,
+      })
+      .from(marketplace_store)
+      .leftJoin(res_users, eq(marketplace_store.owner_id, res_users.id))
+      .where(condition)
+      .limit(1)
+
+    if (!store) return null
+
+    const courses = await db
+      .select({
+        id: product_template.id,
+        name: product_template.name,
+        slug: product_template.slug,
+        cover_url: product_template.cover_url,
+        level: product_template.level,
+        duration_hours: product_template.duration_hours,
+        list_price: product_template.list_price,
+        sale_price: product_template.sale_price,
+        is_free: product_template.is_free,
+        currency: product_template.currency,
+        rating_avg: product_template.rating_avg,
+        rating_count: product_template.rating_count,
+        total_students: product_template.total_students,
+        has_certificate: product_template.has_certificate,
+        is_bestseller: product_template.is_bestseller,
+        category_name: product_category.name,
+        category_slug: product_category.slug,
+        instructor_name: res_users.name,
+      })
+      .from(product_template)
+      .leftJoin(product_category, eq(product_template.category_id, product_category.id))
+      .leftJoin(res_users, eq(product_template.instructor_id, res_users.id))
+      .where(and(
+        eq(product_template.store_id, store.id),
+        eq(product_template.state, 'published'),
+        isNull(product_template.deleted_at),
+      ))
+      .orderBy(desc(product_template.is_featured), desc(product_template.published_at))
+      .limit(24)
+
+    const reviews = await db
+      .select({
+        id: marketplace_review.id,
+        rating: marketplace_review.rating,
+        comment: marketplace_review.comment,
+        verified_purchase: marketplace_review.verified_purchase,
+        created_at: marketplace_review.created_at,
+        reviewer_name: res_users.name,
+        reviewer_avatar: res_users.avatar_url,
+      })
+      .from(marketplace_review)
+      .leftJoin(res_users, eq(marketplace_review.user_id, res_users.id))
+      .where(and(
+        eq(marketplace_review.store_id, store.id),
+        eq(marketplace_review.state, 'published'),
+      ))
+      .orderBy(desc(marketplace_review.created_at))
+      .limit(10)
+
+    return { ...store, courses, reviews }
   } catch { return null }
 }
 
@@ -37,7 +129,7 @@ type Review = {
   reviewer_name?: string; reviewer_avatar?: string
 }
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://eduumarket.netlify.app'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
